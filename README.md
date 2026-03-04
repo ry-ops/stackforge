@@ -151,8 +151,8 @@ The example below shows a bare-metal install. Docker Desktop mode skips the Dock
   ║  Worker Node Join Command                        ║
   ║  Run this on each worker node:                   ║
   ║  curl -fsSL https://get.k3s.io | \               ║
-  ║    K3S_URL=https://192.168.1.100:6443 \           ║
-  ║    K3S_TOKEN=K1075f3... \                         ║
+  ║    K3S_URL=https://192.168.1.100:6443 \          ║
+  ║    K3S_TOKEN=K1075f3... \                        ║
   ║    sh -                                          ║
   ╚══════════════════════════════════════════════════╝
 
