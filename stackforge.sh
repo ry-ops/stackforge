@@ -7,7 +7,7 @@
 #  ███████║   ██║   ██║  ██║╚██████╗██║  ██╗██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
 #  ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 #
-#  stackforge v0.3.1 — guided homelab infrastructure bootstrapper
+#  stackforge v0.3.2 — guided homelab infrastructure bootstrapper
 #
 #  Runs on:
 #    ┌─────────────────────┬────────────────────────────────────────────┐
@@ -36,7 +36,7 @@
 set -euo pipefail
 
 # ─── Globals ────────────────────────────────────────────────
-STACKFORGE_VERSION="0.3.1"
+STACKFORGE_VERSION="0.3.2"
 STACKFORGE_DIR="${HOME}/.stackforge"
 STACKFORGE_KUBECONFIG="${STACKFORGE_DIR}/kubeconfig"  # NEVER ~/.kube/config
 STATE_FILE="${STACKFORGE_DIR}/state.env"
@@ -501,7 +501,7 @@ install_traefik() {
     --set service.type=NodePort \
     --set "ports.web.nodePort=${PORT_TRAEFIK_HTTP}" \
     --set "ports.websecure.nodePort=${PORT_TRAEFIK_HTTPS}" \
-    --set dashboard.enabled=true \
+    --set "ingressRoute.dashboard.enabled=true" \
     --wait --timeout 5m
   ok "Traefik → http://${ACCESS_HOST}:${PORT_TRAEFIK_HTTP}/dashboard/"
   INSTALLED_SERVICES+=("Traefik|http://${ACCESS_HOST}:${PORT_TRAEFIK_HTTP}/dashboard/|Ingress Controller")
