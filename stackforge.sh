@@ -7,7 +7,7 @@
 #  ███████║   ██║   ██║  ██║╚██████╗██║  ██╗██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
 #  ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 #
-#  stackforge v0.2.0 — guided homelab infrastructure bootstrapper
+#  stackforge v0.3.1 — guided homelab infrastructure bootstrapper
 #
 #  Runs on:
 #    ┌─────────────────────┬────────────────────────────────────────────┐
@@ -36,7 +36,7 @@
 set -euo pipefail
 
 # ─── Globals ────────────────────────────────────────────────
-STACKFORGE_VERSION="0.2.0"
+STACKFORGE_VERSION="0.3.1"
 STACKFORGE_DIR="${HOME}/.stackforge"
 STACKFORGE_KUBECONFIG="${STACKFORGE_DIR}/kubeconfig"  # NEVER ~/.kube/config
 STATE_FILE="${STACKFORGE_DIR}/state.env"
