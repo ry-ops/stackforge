@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STACKFORGE // CONTROL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #080c0f;
+    --bg2:      #0d1318;
+    --bg3:      #111820;
+    --border:   #1e2d3a;
+    --border2:  #243444;
+    --accent:   #00e5ff;
+    --accent2:  #ff6b00;
+    --accent3:  #39ff14;
+    --text:     #c8d8e8;
+    --text-dim: #4a6070;
+    --text-mid: #7a9aaa;
+    --red:      #ff3b3b;
+    --yellow:   #ffd600;
+    --mono:     'Share Tech Mono', monospace;
+    --sans:     'Barlow Condensed', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 14px; scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* corner grid pattern */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Header ──────────────────────────────────── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 52px;
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-weight: 900;
+    font-size: 1.5rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .logo-slash { color: var(--text-dim); font-weight: 300; }
+  .logo-sub { font-size: 0.7rem; color: var(--text-mid); font-weight: 300; letter-spacing: 0.3em; margin-top: 2px; }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--text-mid);
+    letter-spacing: 0.1em;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent3);
+    box-shadow: 0 0 8px var(--accent3);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .status-dot.warn { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+  .status-dot.err  { background: var(--red);    box-shadow: 0 0 8px var(--red); }
+
+  .time-display {
+    font-size: 0.75rem;
+    color: var(--text-mid);
+    letter-spacing: 0.05em;
+    min-width: 150px;
+    text-align: right;
+  }
+
+  /* ── Layout ──────────────────────────────────── */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* ── Cluster Stats Bar ───────────────────────── */
+  .cluster-bar {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 2rem;
+    animation: fadeSlideDown 0.6s ease both;
+  }
+
+  .stat-cell {
+    background: var(--bg2);
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    transition: background 0.2s;
+  }
+  .stat-cell:hover { background: var(--bg3); }
+
+  .stat-label {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .stat-value {
+    font-size: 1.4rem;
+    font-family: var(--sans);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+  .stat-value.green { color: var(--accent3); }
+  .stat-value.orange { color: var(--accent2); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-sub {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+  }
+
+  /* ── Section Labels ──────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+  .section-label {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.65rem;
+    letter-spacing: 0.35em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .section-count {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Service Cards Grid ──────────────────────── */
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .service-card {
+    background: var(--bg2);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.15s;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  .service-card:nth-child(1)  { animation-delay: 0.05s }
+  .service-card:nth-child(2)  { animation-delay: 0.10s }
+  .service-card:nth-child(3)  { animation-delay: 0.15s }
+  .service-card:nth-child(4)  { animation-delay: 0.20s }
+  .service-card:nth-child(5)  { animation-delay: 0.25s }
+  .service-card:nth-child(6)  { animation-delay: 0.30s }
+
+  .service-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.2s ease;
+  }
+  .service-card:hover { background: var(--bg3); }
+  .service-card:hover::before { transform: scaleY(1); }
+
+  .service-card::after {
+    content: '→';
+    position: absolute;
+    top: 1.5rem; right: 1.5rem;
+    font-size: 1rem;
+    color: var(--text-dim);
+    transition: color 0.2s, transform 0.2s;
+  }
+  .service-card:hover::after {
+    color: var(--accent);
+    transform: translateX(3px);
+  }
+
+  .card-icon {
+    width: 36px; height: 36px;
+    border: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    background: var(--bg3);
+  }
+
+  .card-name {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  .card-desc {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .card-url {
+    font-size: 0.65rem;
+    color: var(--accent);
+    opacity: 0.6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-status {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-top: auto;
+  }
+
+  /* ── Node Grid ───────────────────────────────── */
+  .nodes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .node-card {
+    background: var(--bg2);
+    padding: 1.25rem;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  .node-card:nth-child(1) { animation-delay: 0.05s }
+  .node-card:nth-child(2) { animation-delay: 0.10s }
+  .node-card:nth-child(3) { animation-delay: 0.15s }
+
+  .node-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .node-name {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .node-role {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    border: 1px solid var(--border2);
+    padding: 0.15rem 0.5rem;
+  }
+  .node-role.master { color: var(--accent); border-color: var(--accent); }
+
+  .node-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .metric-label {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .metric-bar {
+    height: 3px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: var(--accent);
+    transition: width 1s ease;
+  }
+  .metric-fill.warn { background: var(--yellow); }
+  .metric-fill.crit { background: var(--red); }
+  .metric-value {
+    font-size: 0.7rem;
+    color: var(--text);
+  }
+
+  /* ── Terminal Log ────────────────────────────── */
+  .terminal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 1rem 1.25rem;
+    font-size: 0.7rem;
+    color: var(--text-mid);
+    line-height: 1.8;
+    max-height: 160px;
+    overflow-y: auto;
+    animation: fadeSlideUp 0.6s ease 0.3s both;
+  }
+  .terminal::-webkit-scrollbar { width: 4px; }
+  .terminal::-webkit-scrollbar-track { background: var(--bg); }
+  .terminal::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  .log-line { display: flex; gap: 0.75rem; }
+  .log-time  { color: var(--text-dim); min-width: 80px; }
+  .log-level-ok   { color: var(--accent3); min-width: 50px; }
+  .log-level-warn { color: var(--yellow);  min-width: 50px; }
+  .log-level-err  { color: var(--red);     min-width: 50px; }
+  .log-msg { color: var(--text-mid); }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 8px; height: 12px;
+    background: var(--accent);
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+
+  /* ── Add Service Modal ───────────────────────── */
+  .add-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-mid);
+    padding: 0.5rem 1rem;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,0.05);
+  }
+
+  /* ── Animations ──────────────────────────────── */
+  @keyframes fadeSlideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.8); }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* ── Ticker ──────────────────────────────────── */
+  .ticker-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 0.4rem 0;
+    margin-bottom: 2rem;
+    background: var(--bg2);
+  }
+  .ticker-track {
+    display: flex;
+    width: max-content;
+    animation: ticker 30s linear infinite;
+    gap: 4rem;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .ticker-item { display: flex; align-items: center; gap: 0.5rem; }
+  .ticker-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+  /* ── Footer ──────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-top: 3rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 900px) {
+    .cluster-bar { grid-template-columns: repeat(3, 1fr); }
+    .nodes-grid  { grid-template-columns: 1fr; }
+    .services-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  }
+  @media (max-width: 600px) {
+    main { padding: 1rem; }
+    .cluster-bar { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">
+      STACKFORGE <span class="logo-slash">//</span> CONTROL
+    </div>
+    <div class="logo-sub">HOMELAB INFRASTRUCTURE PORTAL</div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill">
+      <div class="status-dot" id="cluster-dot"></div>
+      <span id="cluster-status-label">CLUSTER NOMINAL</span>
+    </div>
+    <div class="time-display" id="clock"></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Cluster Stats Bar -->
+  <div class="cluster-bar" id="cluster-bar">
+    <div class="stat-cell">
+      <div class="stat-label">Nodes</div>
+      <div class="stat-value green" id="stat-nodes">3</div>
+      <div class="stat-sub">1 master · 2 workers</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Pods Running</div>
+      <div class="stat-value" id="stat-pods">—</div>
+      <div class="stat-sub">across all namespaces</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">CPU Usage</div>
+      <div class="stat-value orange" id="stat-cpu">—</div>
+      <div class="stat-sub">cluster avg</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Memory</div>
+      <div class="stat-value yellow" id="stat-mem">—</div>
+      <div class="stat-sub">cluster avg</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Services</div>
+      <div class="stat-value" id="stat-services">—</div>
+      <div class="stat-sub">deployed</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Uptime</div>
+      <div class="stat-value green" id="stat-uptime">—</div>
+      <div class="stat-sub">control plane</div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker-track" id="ticker">
+      <span class="ticker-item"><span class="ticker-dot"></span>k3s v1.29.4+k3s1</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Portainer CE 2.20</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Grafana 10.4</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Traefik v2.11</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Uptime Kuma 1.x</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Prometheus 2.x</span>
+      <!-- duplicated for seamless loop -->
+      <span class="ticker-item"><span class="ticker-dot"></span>k3s v1.29.4+k3s1</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Portainer CE 2.20</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Grafana 10.4</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Traefik v2.11</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Uptime Kuma 1.x</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Prometheus 2.x</span>
+    </div>
+  </div>
+
+  <!-- Services -->
+  <div class="section-header">
+    <div class="section-label">Installed Services</div>
+    <div class="section-line"></div>
+    <button class="add-btn" onclick="addService()">+ ADD SERVICE</button>
+    <div class="section-count" id="svc-count"></div>
+  </div>
+
+  <div class="services-grid" id="services-grid"></div>
+
+  <!-- Nodes -->
+  <div class="section-header" style="margin-top:2.5rem">
+    <div class="section-label">Cluster Nodes</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="nodes-grid" id="nodes-grid"></div>
+
+  <!-- Terminal Log -->
+  <div class="section-header" style="margin-top:2.5rem">
+    <div class="section-label">Activity Log</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="terminal" id="terminal"></div>
+
+</main>
+
+<footer>
+  <span>STACKFORGE v0.1.0 // RY-OPS.DEV</span>
+  <span>K3S // LIGHTWEIGHT KUBERNETES</span>
+  <span id="footer-time"></span>
+</footer>
+
+<script>
+// ── Config ────────────────────────────────────────────────────
+// stackforge.sh injects this at deploy time via sed or envsubst
+// You can also edit this file directly on the node
+const CONFIG = {
+  nodeIP: window.location.hostname || '192.168.1.100',
+  clusterName: 'stackforge-homelab',
+  services: JSON.parse(localStorage.getItem('sf-services') || 'null') || [
+    { name: 'Portainer',          url: null, desc: 'Container Management',  icon: '🐳', port: 30779, proto: 'https' },
+    { name: 'Grafana',            url: null, desc: 'Metrics & Dashboards',   icon: '📊', port: 32000, proto: 'http'  },
+    { name: 'Prometheus',         url: null, desc: 'Metrics Backend',        icon: '🔥', port: 32001, proto: 'http'  },
+    { name: 'Uptime Kuma',        url: null, desc: 'Status Monitoring',      icon: '🟢', port: 32100, proto: 'http'  },
+    { name: 'Traefik Dashboard',  url: null, desc: 'Ingress Controller',     icon: '🔀', port: 32080, proto: 'http', path: '/dashboard/' },
+  ]
+};
+
+// Resolve URLs from node IP
+CONFIG.services = CONFIG.services.map(s => ({
+  ...s,
+  url: s.url || `${s.proto}://${CONFIG.nodeIP}:${s.port}${s.path || ''}`
+}));
+
+// ── Clock ─────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const str = now.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  document.getElementById('clock').textContent = str;
+  document.getElementById('footer-time').textContent = str;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Service Cards ─────────────────────────────────────────────
+const grid = document.getElementById('services-grid');
+const icons = { 'Portainer':'🐳','Grafana':'📊','Prometheus':'🔥','Uptime Kuma':'🟢','Traefik Dashboard':'🔀' };
+
+function renderServices() {
+  grid.innerHTML = '';
+  CONFIG.services.forEach((svc, i) => {
+    const card = document.createElement('a');
+    card.href = svc.url;
+    card.target = '_blank';
+    card.rel = 'noopener';
+    card.className = 'service-card';
+    card.style.animationDelay = `${i * 0.05 + 0.05}s`;
+    card.innerHTML = `
+      <div class="card-icon">${svc.icon || '⬡'}</div>
+      <div>
+        <div class="card-name">${svc.name}</div>
+        <div class="card-desc">${svc.desc}</div>
+      </div>
+      <div class="card-url">${svc.url}</div>
+      <div class="card-status">
+        <div class="status-dot" id="dot-${i}"></div>
+        <span id="status-${i}">CHECKING...</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  document.getElementById('svc-count').textContent = `${CONFIG.services.length} TOTAL`;
+  document.getElementById('stat-services').textContent = CONFIG.services.length;
+}
+
+// ── Service Health Check ──────────────────────────────────────
+function checkService(url, dotEl, labelEl) {
+  // Use image probe trick (works for most HTTP endpoints in same-origin context)
+  // Fall back to "UNKNOWN" — real health would need a backend proxy
+  dotEl.className = 'status-dot warn';
+  labelEl.textContent = 'EXTERNAL';
+}
+
+// ── Node Cards ────────────────────────────────────────────────
+const nodes = [
+  { name: 'master-01', role: 'master', cpu: 28, mem: 42, disk: 31, version: 'v1.29.4+k3s1' },
+  { name: 'worker-01', role: 'worker', cpu: 54, mem: 61, disk: 45, version: 'v1.29.4+k3s1' },
+  { name: 'worker-02', role: 'worker', cpu: 37, mem: 48, disk: 38, version: 'v1.29.4+k3s1' },
+];
+
+function fillBar(pct) {
+  const cls = pct > 85 ? 'crit' : pct > 60 ? 'warn' : '';
+  return `<div class="metric-bar"><div class="metric-fill ${cls}" style="width:${pct}%"></div></div>`;
+}
+
+function renderNodes() {
+  const g = document.getElementById('nodes-grid');
+  g.innerHTML = '';
+  nodes.forEach((n, i) => {
+    const card = document.createElement('div');
+    card.className = 'node-card';
+    card.style.animationDelay = `${i * 0.05 + 0.05}s`;
+    card.innerHTML = `
+      <div class="node-header">
+        <div class="node-name">${n.name}</div>
+        <div class="node-role ${n.role}">${n.role.toUpperCase()}</div>
+      </div>
+      <div class="node-metrics">
+        <div class="metric">
+          <div class="metric-label">CPU</div>
+          ${fillBar(n.cpu)}
+          <div class="metric-value">${n.cpu}%</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Memory</div>
+          ${fillBar(n.mem)}
+          <div class="metric-value">${n.mem}%</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Disk</div>
+          ${fillBar(n.disk)}
+          <div class="metric-value">${n.disk}%</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">k3s</div>
+          <div class="metric-value" style="color:var(--text-dim);font-size:0.6rem">${n.version}</div>
+        </div>
+      </div>
+    `;
+    g.appendChild(card);
+  });
+}
+
+// ── Terminal Log ──────────────────────────────────────────────
+const LOGS = [
+  { t: '00:00:01', l: 'ok',   m: 'stackforge bootstrap complete' },
+  { t: '00:00:04', l: 'ok',   m: 'k3s control plane started · node: master-01' },
+  { t: '00:00:12', l: 'ok',   m: 'worker-01 joined cluster' },
+  { t: '00:00:15', l: 'ok',   m: 'worker-02 joined cluster' },
+  { t: '00:01:02', l: 'ok',   m: 'traefik ingress deployed · nodeport 32080/32443' },
+  { t: '00:02:14', l: 'ok',   m: 'portainer CE deployed · nodeport 30777' },
+  { t: '00:04:51', l: 'ok',   m: 'kube-prometheus-stack deployed' },
+  { t: '00:04:55', l: 'warn', m: 'grafana: change default password (admin/stackforge)' },
+  { t: '00:05:12', l: 'ok',   m: 'uptime-kuma deployed · nodeport 32100' },
+  { t: '00:05:18', l: 'ok',   m: 'stackforge portal deployed · nodeport 30080' },
+  { t: '00:05:19', l: 'ok',   m: 'all services healthy — dashboard ready' },
+];
+
+function renderTerminal() {
+  const t = document.getElementById('terminal');
+  t.innerHTML = LOGS.map(l => `
+    <div class="log-line">
+      <span class="log-time">[${l.t}]</span>
+      <span class="log-level-${l.l}">[${l.l.toUpperCase().padEnd(4)}]</span>
+      <span class="log-msg">${l.m}</span>
+    </div>
+  `).join('') + `<div class="log-line"><span class="log-time">[ready]</span><span class="log-level-ok"> </span><span class="log-msg"><span class="cursor-blink"></span></span></div>`;
+  t.scrollTop = t.scrollHeight;
+}
+
+// ── Add Service ───────────────────────────────────────────────
+function addService() {
+  const name = prompt('Service name:');
+  if (!name) return;
+  const url  = prompt('Service URL (e.g. http://192.168.1.100:8080):');
+  if (!url) return;
+  const desc = prompt('Description:') || 'Custom service';
+  CONFIG.services.push({ name, url, desc, icon: '⬡' });
+  localStorage.setItem('sf-services', JSON.stringify(CONFIG.services));
+  renderServices();
+  appendLog('ok', `custom service added: ${name}`);
+}
+
+function appendLog(level, msg) {
+  const t = document.getElementById('terminal');
+  const now = new Date().toTimeString().slice(0,8);
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-time">[${now}]</span><span class="log-level-${level}">[${level.toUpperCase().padEnd(4)}]</span><span class="log-msg">${msg}</span>`;
+  t.insertBefore(div, t.lastElementChild);
+  t.scrollTop = t.scrollHeight;
+}
+
+// ── Fake live stats (in prod these come from Prometheus API) ──
+function refreshStats() {
+  // Simulate slight variation — in production wire to Prometheus /api/v1/query
+  const cpuBase = 28 + Math.random() * 8;
+  const memBase = 48 + Math.random() * 6;
+  document.getElementById('stat-cpu').textContent  = cpuBase.toFixed(1) + '%';
+  document.getElementById('stat-mem').textContent  = memBase.toFixed(1) + '%';
+  document.getElementById('stat-pods').textContent = Math.floor(18 + Math.random() * 4);
+
+  // Uptime counter
+  if (!window._startTime) window._startTime = Date.now();
+  const elapsed = Math.floor((Date.now() - window._startTime) / 1000);
+  const h = String(Math.floor(elapsed/3600)).padStart(2,'0');
+  const m = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
+  const s = String(elapsed%60).padStart(2,'0');
+  document.getElementById('stat-uptime').textContent = `${h}:${m}:${s}`;
+}
+
+// ── Init ──────────────────────────────────────────────────────
+renderServices();
+renderNodes();
+renderTerminal();
+refreshStats();
+setInterval(refreshStats, 5000);
+
+// Check dots after short delay
+setTimeout(() => {
+  CONFIG.services.forEach((_, i) => {
+    const dot = document.getElementById(`dot-${i}`);
+    const lbl = document.getElementById(`status-${i}`);
+    if (dot && lbl) checkService(_.url, dot, lbl);
+  });
+}, 500);
+</script>
+</body>
+</html>
