@@ -258,7 +258,7 @@ stackforge/
 
 ## Companion Tutorial
 
-Full walkthrough on ry-ops.dev: [Kubernetes at Home: A Practical Guide to Your First Cluster](https://ry-ops.dev/posts/2026-03-04-kubernetes-homelab-from-zero)
+Full walkthrough on ry-ops.dev: COMING SOON!!
 
 ---
 
