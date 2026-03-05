@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080c0f">
 <title>STACKFORGE // CONTROL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
@@ -23,22 +26,27 @@
     --yellow:   #ffd600;
     --mono:     'Share Tech Mono', monospace;
     --sans:     'Barlow Condensed', sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+    --safe-l:   env(safe-area-inset-left, 0px);
+    --safe-r:   env(safe-area-inset-right, 0px);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html { font-size: 14px; scroll-behavior: smooth; }
+  html { font-size: 14px; scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
   body {
     background: var(--bg);
     color: var(--text);
     font-family: var(--mono);
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
-    cursor: crosshair;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* scanline overlay */
+  /* scanline overlay — lighter on mobile for readability */
   body::before {
     content: '';
     position: fixed;
@@ -47,21 +55,21 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(0,0,0,0.08) 2px,
-      rgba(0,0,0,0.08) 4px
+      rgba(0,0,0,0.06) 2px,
+      rgba(0,0,0,0.06) 4px
     );
     pointer-events: none;
     z-index: 1000;
   }
 
-  /* corner grid pattern */
+  /* grid pattern */
   body::after {
     content: '';
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+      linear-gradient(rgba(0,229,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.02) 1px, transparent 1px);
     background-size: 40px 40px;
     pointer-events: none;
     z-index: 0;
@@ -74,38 +82,45 @@
     z-index: 100;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
+    padding: 0.6rem 1rem;
+    padding-top: calc(0.6rem + var(--safe-top));
+    padding-left: calc(1rem + var(--safe-l));
+    padding-right: calc(1rem + var(--safe-r));
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .header-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 2rem;
-    height: 52px;
+    min-height: 32px;
   }
 
   .logo {
     font-family: var(--sans);
     font-weight: 900;
-    font-size: 1.5rem;
-    letter-spacing: 0.15em;
+    font-size: 1.2rem;
+    letter-spacing: 0.12em;
     color: var(--accent);
     text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    white-space: nowrap;
   }
   .logo-slash { color: var(--text-dim); font-weight: 300; }
-  .logo-sub { font-size: 0.7rem; color: var(--text-mid); font-weight: 300; letter-spacing: 0.3em; margin-top: 2px; }
 
-  .header-right {
+  .header-meta {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
   .status-pill {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.7rem;
+    gap: 0.4rem;
+    font-size: 0.65rem;
     color: var(--text-mid);
     letter-spacing: 0.1em;
   }
@@ -115,16 +130,16 @@
     background: var(--accent3);
     box-shadow: 0 0 8px var(--accent3);
     animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
   }
   .status-dot.warn { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
   .status-dot.err  { background: var(--red);    box-shadow: 0 0 8px var(--red); }
 
   .time-display {
-    font-size: 0.75rem;
-    color: var(--text-mid);
+    font-size: 0.65rem;
+    color: var(--text-dim);
     letter-spacing: 0.05em;
-    min-width: 150px;
-    text-align: right;
+    white-space: nowrap;
   }
 
   /* ── Layout ──────────────────────────────────── */
@@ -133,38 +148,38 @@
     z-index: 1;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1rem;
+    padding-left: calc(1rem + var(--safe-l));
+    padding-right: calc(1rem + var(--safe-r));
   }
 
   /* ── Cluster Stats Bar ───────────────────────── */
   .cluster-bar {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 1px;
     background: var(--border);
     border: 1px solid var(--border);
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     animation: fadeSlideDown 0.6s ease both;
   }
 
   .stat-cell {
     background: var(--bg2);
-    padding: 1rem 1.2rem;
+    padding: 0.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    transition: background 0.2s;
+    gap: 0.2rem;
   }
-  .stat-cell:hover { background: var(--bg3); }
 
   .stat-label {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     color: var(--text-dim);
     letter-spacing: 0.2em;
     text-transform: uppercase;
   }
   .stat-value {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     font-family: var(--sans);
     font-weight: 700;
     color: var(--accent);
@@ -175,7 +190,7 @@
   .stat-value.orange { color: var(--accent2); }
   .stat-value.yellow { color: var(--yellow); }
   .stat-sub {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     color: var(--text-dim);
   }
 
@@ -183,22 +198,25 @@
   .section-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    margin-top: 2rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
   }
   .section-label {
     font-family: var(--sans);
     font-weight: 600;
     font-size: 0.65rem;
-    letter-spacing: 0.35em;
+    letter-spacing: 0.3em;
     color: var(--text-dim);
     text-transform: uppercase;
+    white-space: nowrap;
   }
   .section-line {
     flex: 1;
     height: 1px;
     background: var(--border);
+    min-width: 2rem;
   }
   .section-count {
     font-size: 0.6rem;
@@ -209,17 +227,17 @@
   /* ── Service Cards Grid ──────────────────────── */
   .services-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: 1fr;
     gap: 1px;
     background: var(--border);
   }
 
   .service-card {
     background: var(--bg2);
-    padding: 1.5rem;
+    padding: 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.6rem;
     cursor: pointer;
     text-decoration: none;
     color: inherit;
@@ -227,6 +245,8 @@
     overflow: hidden;
     transition: background 0.15s;
     animation: fadeSlideUp 0.5s ease both;
+    min-height: 44px;
+    -webkit-touch-callout: none;
   }
   .service-card:nth-child(1)  { animation-delay: 0.05s }
   .service-card:nth-child(2)  { animation-delay: 0.10s }
@@ -245,59 +265,57 @@
     transform-origin: bottom;
     transition: transform 0.2s ease;
   }
-  .service-card:hover { background: var(--bg3); }
-  .service-card:hover::before { transform: scaleY(1); }
+  .service-card:active { background: var(--bg3); }
+  .service-card:active::before { transform: scaleY(1); }
 
   .service-card::after {
     content: '→';
     position: absolute;
-    top: 1.5rem; right: 1.5rem;
+    top: 1.25rem; right: 1.25rem;
     font-size: 1rem;
     color: var(--text-dim);
     transition: color 0.2s, transform 0.2s;
   }
-  .service-card:hover::after {
-    color: var(--accent);
-    transform: translateX(3px);
-  }
 
   .card-icon {
-    width: 36px; height: 36px;
+    width: 32px; height: 32px;
     border: 1px solid var(--border2);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 0.9rem;
     background: var(--bg3);
+    flex-shrink: 0;
   }
 
   .card-name {
     font-family: var(--sans);
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1rem;
     letter-spacing: 0.08em;
     color: var(--text);
     text-transform: uppercase;
   }
   .card-desc {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     color: var(--text-dim);
     letter-spacing: 0.1em;
     text-transform: uppercase;
   }
   .card-url {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     color: var(--accent);
     opacity: 0.6;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
   }
   .card-status {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     color: var(--text-dim);
     letter-spacing: 0.1em;
     margin-top: auto;
@@ -306,14 +324,14 @@
   /* ── Node Grid ───────────────────────────────── */
   .nodes-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
     gap: 1px;
     background: var(--border);
   }
 
   .node-card {
     background: var(--bg2);
-    padding: 1.25rem;
+    padding: 1rem;
     animation: fadeSlideUp 0.5s ease both;
   }
   .node-card:nth-child(1) { animation-delay: 0.05s }
@@ -324,19 +342,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
   .node-name {
     font-family: var(--sans);
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
   }
   .node-role {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     color: var(--text-dim);
-    letter-spacing: 0.25em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
     border: 1px solid var(--border2);
     padding: 0.15rem 0.5rem;
@@ -346,24 +364,25 @@
   .node-metrics {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+    gap: 0.6rem;
   }
   .metric {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.25rem;
   }
   .metric-label {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     color: var(--text-dim);
     letter-spacing: 0.2em;
     text-transform: uppercase;
   }
   .metric-bar {
-    height: 3px;
+    height: 4px;
     background: var(--border);
     position: relative;
     overflow: hidden;
+    border-radius: 1px;
   }
   .metric-fill {
     position: absolute;
@@ -371,11 +390,12 @@
     height: 100%;
     background: var(--accent);
     transition: width 1s ease;
+    border-radius: 1px;
   }
   .metric-fill.warn { background: var(--yellow); }
   .metric-fill.crit { background: var(--red); }
   .metric-value {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text);
   }
 
@@ -383,52 +403,109 @@
   .terminal {
     background: var(--bg2);
     border: 1px solid var(--border);
-    padding: 1rem 1.25rem;
-    font-size: 0.7rem;
+    padding: 0.75rem;
+    font-size: 0.6rem;
     color: var(--text-mid);
     line-height: 1.8;
-    max-height: 160px;
+    max-height: 140px;
     overflow-y: auto;
+    overflow-x: hidden;
     animation: fadeSlideUp 0.6s ease 0.3s both;
+    -webkit-overflow-scrolling: touch;
   }
-  .terminal::-webkit-scrollbar { width: 4px; }
+  .terminal::-webkit-scrollbar { width: 3px; }
   .terminal::-webkit-scrollbar-track { background: var(--bg); }
   .terminal::-webkit-scrollbar-thumb { background: var(--border2); }
 
-  .log-line { display: flex; gap: 0.75rem; }
-  .log-time  { color: var(--text-dim); min-width: 80px; }
-  .log-level-ok   { color: var(--accent3); min-width: 50px; }
-  .log-level-warn { color: var(--yellow);  min-width: 50px; }
-  .log-level-err  { color: var(--red);     min-width: 50px; }
-  .log-msg { color: var(--text-mid); }
+  .log-line {
+    display: flex;
+    gap: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .log-time  { color: var(--text-dim); min-width: 60px; flex-shrink: 0; }
+  .log-level-ok   { color: var(--accent3); min-width: 40px; flex-shrink: 0; }
+  .log-level-warn { color: var(--yellow);  min-width: 40px; flex-shrink: 0; }
+  .log-level-err  { color: var(--red);     min-width: 40px; flex-shrink: 0; }
+  .log-msg {
+    color: var(--text-mid);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   .cursor-blink {
     display: inline-block;
-    width: 8px; height: 12px;
+    width: 7px; height: 10px;
     background: var(--accent);
     vertical-align: middle;
     animation: blink 1s step-end infinite;
   }
 
-  /* ── Add Service Modal ───────────────────────── */
+  /* ── Add Service Button ────────────────────────── */
   .add-btn {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     background: transparent;
     border: 1px solid var(--border2);
     color: var(--text-mid);
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
     font-family: var(--mono);
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     letter-spacing: 0.1em;
     cursor: pointer;
     transition: all 0.2s;
+    min-height: 44px;
+    white-space: nowrap;
   }
-  .add-btn:hover {
+  .add-btn:active {
     border-color: var(--accent);
     color: var(--accent);
-    background: rgba(0,229,255,0.05);
+    background: rgba(0,229,255,0.08);
+  }
+
+  /* ── Ticker ──────────────────────────────────── */
+  .ticker-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 0.35rem 0;
+    margin-bottom: 1.5rem;
+    background: var(--bg2);
+  }
+  .ticker-track {
+    display: flex;
+    width: max-content;
+    animation: ticker 30s linear infinite;
+    gap: 3rem;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .ticker-item { display: flex; align-items: center; gap: 0.4rem; }
+  .ticker-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+  /* ── Footer ──────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    padding-bottom: calc(0.75rem + var(--safe-bot));
+    padding-left: calc(1rem + var(--safe-l));
+    padding-right: calc(1rem + var(--safe-r));
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    align-items: center;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-top: 2rem;
+    position: relative;
+    z-index: 1;
+    text-align: center;
   }
 
   /* ── Animations ──────────────────────────────── */
@@ -453,65 +530,131 @@
     to   { transform: translateX(-50%); }
   }
 
-  /* ── Ticker ──────────────────────────────────── */
-  .ticker-wrap {
-    overflow: hidden;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 0.4rem 0;
-    margin-bottom: 2rem;
-    background: var(--bg2);
-  }
-  .ticker-track {
-    display: flex;
-    width: max-content;
-    animation: ticker 30s linear infinite;
-    gap: 4rem;
-    font-size: 0.6rem;
-    color: var(--text-dim);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-  .ticker-item { display: flex; align-items: center; gap: 0.5rem; }
-  .ticker-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+  /* ═══════════════════════════════════════════════
+     TABLET (600px+)
+     ═══════════════════════════════════════════════ */
+  @media (min-width: 600px) {
+    header {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      padding-left: calc(1.5rem + var(--safe-l));
+      padding-right: calc(1.5rem + var(--safe-r));
+      height: 52px;
+    }
 
-  /* ── Footer ──────────────────────────────────── */
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.6rem;
-    color: var(--text-dim);
-    letter-spacing: 0.1em;
-    margin-top: 3rem;
-    position: relative;
-    z-index: 1;
-  }
+    .header-top { flex: none; }
 
-  @media (max-width: 900px) {
+    main { padding: 1.5rem; }
+
     .cluster-bar { grid-template-columns: repeat(3, 1fr); }
-    .nodes-grid  { grid-template-columns: 1fr; }
-    .services-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+    .stat-cell { padding: 0.85rem 1rem; }
+
+    .services-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .nodes-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .terminal { font-size: 0.65rem; padding: 1rem; }
+    .log-time { min-width: 70px; }
+    .log-level-ok, .log-level-warn, .log-level-err { min-width: 45px; }
+
+    footer {
+      flex-direction: row;
+      justify-content: space-between;
+    }
   }
-  @media (max-width: 600px) {
-    main { padding: 1rem; }
-    .cluster-bar { grid-template-columns: repeat(2, 1fr); }
+
+  /* ═══════════════════════════════════════════════
+     DESKTOP (900px+)
+     ═══════════════════════════════════════════════ */
+  @media (min-width: 900px) {
+    body { cursor: crosshair; }
+
+    header { padding: 0 2rem; }
+
+    main { padding: 2rem; }
+
+    .cluster-bar { grid-template-columns: repeat(6, 1fr); }
+    .stat-cell { padding: 1rem 1.2rem; }
+    .stat-value { font-size: 1.4rem; }
+
+    .services-grid {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    .service-card { padding: 1.5rem; }
+    .service-card:hover { background: var(--bg3); }
+    .service-card:hover::before { transform: scaleY(1); }
+    .service-card:hover::after {
+      color: var(--accent);
+      transform: translateX(3px);
+    }
+
+    .card-icon { width: 36px; height: 36px; font-size: 1rem; }
+    .card-name { font-size: 1.1rem; }
+
+    .node-card { padding: 1.25rem; }
+
+    .terminal {
+      font-size: 0.7rem;
+      max-height: 160px;
+      padding: 1rem 1.25rem;
+    }
+    .log-time { min-width: 80px; }
+    .log-level-ok, .log-level-warn, .log-level-err { min-width: 50px; }
+
+    .add-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0,229,255,0.05);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     WIDE DESKTOP (1200px+)
+     ═══════════════════════════════════════════════ */
+  @media (min-width: 1200px) {
+    .services-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     SMALL PHONES (< 380px)
+     ═══════════════════════════════════════════════ */
+  @media (max-width: 379px) {
+    html { font-size: 13px; }
+    .logo { font-size: 1rem; }
+    .stat-value { font-size: 1.1rem; }
+    .ticker-track { gap: 2rem; }
+    .node-metrics { grid-template-columns: 1fr; }
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .ticker-track { animation: none; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <div>
+  <div class="header-top">
     <div class="logo">
       STACKFORGE <span class="logo-slash">//</span> CONTROL
     </div>
-    <div class="logo-sub">HOMELAB INFRASTRUCTURE PORTAL</div>
   </div>
-  <div class="header-right">
+  <div class="header-meta">
     <div class="status-pill">
       <div class="status-dot" id="cluster-dot"></div>
       <span id="cluster-status-label">CLUSTER NOMINAL</span>
@@ -559,19 +702,18 @@
   <!-- Ticker -->
   <div class="ticker-wrap">
     <div class="ticker-track" id="ticker">
-      <span class="ticker-item"><span class="ticker-dot"></span>k3s v1.29.4+k3s1</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Portainer CE 2.20</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Grafana 10.4</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Traefik v2.11</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Uptime Kuma 1.x</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Prometheus 2.x</span>
-      <!-- duplicated for seamless loop -->
-      <span class="ticker-item"><span class="ticker-dot"></span>k3s v1.29.4+k3s1</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Portainer CE 2.20</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Grafana 10.4</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Traefik v2.11</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Uptime Kuma 1.x</span>
-      <span class="ticker-item"><span class="ticker-dot"></span>Prometheus 2.x</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>k3s</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Portainer CE</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Grafana</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Traefik</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Uptime Kuma</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Prometheus</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>k3s</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Portainer CE</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Grafana</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Traefik</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Uptime Kuma</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Prometheus</span>
     </div>
   </div>
 
@@ -579,14 +721,14 @@
   <div class="section-header">
     <div class="section-label">Installed Services</div>
     <div class="section-line"></div>
-    <button class="add-btn" onclick="addService()">+ ADD SERVICE</button>
+    <button class="add-btn" onclick="addService()">+ ADD</button>
     <div class="section-count" id="svc-count"></div>
   </div>
 
   <div class="services-grid" id="services-grid"></div>
 
   <!-- Nodes -->
-  <div class="section-header" style="margin-top:2.5rem">
+  <div class="section-header">
     <div class="section-label">Cluster Nodes</div>
     <div class="section-line"></div>
   </div>
@@ -594,7 +736,7 @@
   <div class="nodes-grid" id="nodes-grid"></div>
 
   <!-- Terminal Log -->
-  <div class="section-header" style="margin-top:2.5rem">
+  <div class="section-header">
     <div class="section-label">Activity Log</div>
     <div class="section-line"></div>
   </div>
@@ -604,15 +746,13 @@
 </main>
 
 <footer>
-  <span>STACKFORGE v0.3.2 // RY-OPS.DEV</span>
+  <span>STACKFORGE v0.3.4 // RY-OPS.DEV</span>
   <span>K3S // LIGHTWEIGHT KUBERNETES</span>
   <span id="footer-time"></span>
 </footer>
 
 <script>
 // ── Config ────────────────────────────────────────────────────
-// stackforge.sh injects this at deploy time via sed or envsubst
-// You can also edit this file directly on the node
 const CONFIG = {
   nodeIP: window.location.hostname || '192.168.1.100',
   clusterName: 'stackforge-homelab',
@@ -625,7 +765,6 @@ const CONFIG = {
   ]
 };
 
-// Resolve URLs from node IP
 CONFIG.services = CONFIG.services.map(s => ({
   ...s,
   url: s.url || `${s.proto}://${CONFIG.nodeIP}:${s.port}${s.path || ''}`
@@ -643,7 +782,6 @@ updateClock();
 
 // ── Service Cards ─────────────────────────────────────────────
 const grid = document.getElementById('services-grid');
-const icons = { 'Portainer':'🐳','Grafana':'📊','Prometheus':'🔥','Uptime Kuma':'🟢','Traefik Dashboard':'🔀' };
 
 function renderServices() {
   grid.innerHTML = '';
@@ -674,17 +812,15 @@ function renderServices() {
 
 // ── Service Health Check ──────────────────────────────────────
 function checkService(url, dotEl, labelEl) {
-  // Use image probe trick (works for most HTTP endpoints in same-origin context)
-  // Fall back to "UNKNOWN" — real health would need a backend proxy
   dotEl.className = 'status-dot warn';
   labelEl.textContent = 'EXTERNAL';
 }
 
 // ── Node Cards ────────────────────────────────────────────────
 const nodes = [
-  { name: 'master-01', role: 'master', cpu: 28, mem: 42, disk: 31, version: 'v1.29.4+k3s1' },
-  { name: 'worker-01', role: 'worker', cpu: 54, mem: 61, disk: 45, version: 'v1.29.4+k3s1' },
-  { name: 'worker-02', role: 'worker', cpu: 37, mem: 48, disk: 38, version: 'v1.29.4+k3s1' },
+  { name: 'master-01', role: 'master', cpu: 28, mem: 42, disk: 31, version: 'v1.33.6+k3s1' },
+  { name: 'worker-01', role: 'worker', cpu: 54, mem: 61, disk: 45, version: 'v1.33.6+k3s1' },
+  { name: 'worker-02', role: 'worker', cpu: 37, mem: 48, disk: 38, version: 'v1.33.6+k3s1' },
 ];
 
 function fillBar(pct) {
@@ -722,7 +858,7 @@ function renderNodes() {
         </div>
         <div class="metric">
           <div class="metric-label">k3s</div>
-          <div class="metric-value" style="color:var(--text-dim);font-size:0.6rem">${n.version}</div>
+          <div class="metric-value" style="color:var(--text-dim);font-size:0.55rem">${n.version}</div>
         </div>
       </div>
     `;
@@ -733,16 +869,16 @@ function renderNodes() {
 // ── Terminal Log ──────────────────────────────────────────────
 const LOGS = [
   { t: '00:00:01', l: 'ok',   m: 'stackforge bootstrap complete' },
-  { t: '00:00:04', l: 'ok',   m: 'k3s control plane started · node: master-01' },
+  { t: '00:00:04', l: 'ok',   m: 'k3s control plane started' },
   { t: '00:00:12', l: 'ok',   m: 'worker-01 joined cluster' },
   { t: '00:00:15', l: 'ok',   m: 'worker-02 joined cluster' },
-  { t: '00:01:02', l: 'ok',   m: 'traefik ingress deployed · nodeport 32080/32443' },
-  { t: '00:02:14', l: 'ok',   m: 'portainer CE deployed · nodeport 30777' },
+  { t: '00:01:02', l: 'ok',   m: 'traefik ingress deployed' },
+  { t: '00:02:14', l: 'ok',   m: 'portainer CE deployed' },
   { t: '00:04:51', l: 'ok',   m: 'kube-prometheus-stack deployed' },
-  { t: '00:04:55', l: 'warn', m: 'grafana: change default password (admin/stackforge)' },
-  { t: '00:05:12', l: 'ok',   m: 'uptime-kuma deployed · nodeport 32100' },
-  { t: '00:05:18', l: 'ok',   m: 'stackforge portal deployed · nodeport 30080' },
-  { t: '00:05:19', l: 'ok',   m: 'all services healthy — dashboard ready' },
+  { t: '00:04:55', l: 'warn', m: 'grafana: change default password' },
+  { t: '00:05:12', l: 'ok',   m: 'uptime-kuma deployed' },
+  { t: '00:05:18', l: 'ok',   m: 'stackforge portal deployed' },
+  { t: '00:05:19', l: 'ok',   m: 'all services healthy' },
 ];
 
 function renderTerminal() {
@@ -767,7 +903,7 @@ function addService() {
   CONFIG.services.push({ name, url, desc, icon: '⬡' });
   localStorage.setItem('sf-services', JSON.stringify(CONFIG.services));
   renderServices();
-  appendLog('ok', `custom service added: ${name}`);
+  appendLog('ok', `service added: ${name}`);
 }
 
 function appendLog(level, msg) {
@@ -780,16 +916,14 @@ function appendLog(level, msg) {
   t.scrollTop = t.scrollHeight;
 }
 
-// ── Fake live stats (in prod these come from Prometheus API) ──
+// ── Live stats (simulated — wire to Prometheus in prod) ───────
 function refreshStats() {
-  // Simulate slight variation — in production wire to Prometheus /api/v1/query
   const cpuBase = 28 + Math.random() * 8;
   const memBase = 48 + Math.random() * 6;
   document.getElementById('stat-cpu').textContent  = cpuBase.toFixed(1) + '%';
   document.getElementById('stat-mem').textContent  = memBase.toFixed(1) + '%';
   document.getElementById('stat-pods').textContent = Math.floor(18 + Math.random() * 4);
 
-  // Uptime counter
   if (!window._startTime) window._startTime = Date.now();
   const elapsed = Math.floor((Date.now() - window._startTime) / 1000);
   const h = String(Math.floor(elapsed/3600)).padStart(2,'0');
@@ -805,7 +939,6 @@ renderTerminal();
 refreshStats();
 setInterval(refreshStats, 5000);
 
-// Check dots after short delay
 setTimeout(() => {
   CONFIG.services.forEach((_, i) => {
     const dot = document.getElementById(`dot-${i}`);

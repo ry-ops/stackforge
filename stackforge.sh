@@ -36,7 +36,7 @@
 set -euo pipefail
 
 # ─── Globals ────────────────────────────────────────────────
-STACKFORGE_VERSION="0.3.2"
+STACKFORGE_VERSION="0.3.4"
 STACKFORGE_DIR="${HOME}/.stackforge"
 STACKFORGE_KUBECONFIG="${STACKFORGE_DIR}/kubeconfig"  # NEVER ~/.kube/config
 STATE_FILE="${STACKFORGE_DIR}/state.env"
