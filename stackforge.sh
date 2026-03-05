@@ -247,7 +247,7 @@ check_prerequisites() {
     [[ $EUID -ne 0 ]] || die "Don't run as root. stackforge uses sudo internally."
     command -v sudo &>/dev/null || die "sudo is required but not installed."
     local missing=()
-    for cmd in curl wget; do command -v "$cmd" &>/dev/null || missing+=("$cmd"); done
+    for cmd in curl; do command -v "$cmd" &>/dev/null || missing+=("$cmd"); done
     if [[ ${#missing[@]} -gt 0 ]]; then
       pkg_update; pkg_install "${missing[@]}"
     fi
