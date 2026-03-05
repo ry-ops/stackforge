@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # ============================================================
 #  ███████╗████████╗ █████╗  ██████╗██╗  ██╗███████╗ ██████╗ ██████╗  ██████╗ ███████╗
 #  ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
@@ -7,7 +7,7 @@
 #  ███████║   ██║   ██║  ██║╚██████╗██║  ██╗██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
 #  ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 #
-#  stackforge v0.3.2 — guided homelab infrastructure bootstrapper
+#  stackforge v0.3.6 — guided homelab infrastructure bootstrapper
 #
 #  Runs on:
 #    ┌─────────────────────┬────────────────────────────────────────────┐
@@ -25,7 +25,7 @@
 #    Existing clusters are completely unaffected.
 #
 #  Usage:
-#    curl -fsSL https://raw.githubusercontent.com/ry-ops/stackforge/main/stackforge.sh | bash
+#    curl -fsSL https://raw.githubusercontent.com/ry-ops/stackforge/main/stackforge.sh | sh
 #
 #  Subcommands:
 #    --worker     Join this machine to an existing stackforge bare-metal cluster
@@ -33,10 +33,10 @@
 #    --kubeconfig Print path to the stackforge kubeconfig file
 # ============================================================
 
-set -euo pipefail
+set -eu
 
 # ─── Globals ────────────────────────────────────────────────
-STACKFORGE_VERSION="0.3.4"
+STACKFORGE_VERSION="0.3.6"
 STACKFORGE_DIR="${HOME}/.stackforge"
 STACKFORGE_KUBECONFIG="${STACKFORGE_DIR}/kubeconfig"  # NEVER ~/.kube/config
 STATE_FILE="${STACKFORGE_DIR}/state.env"
@@ -44,7 +44,8 @@ LOG_FILE="${STACKFORGE_DIR}/stackforge.log"
 K3S_VERSION="v1.29.4+k3s1"
 K3D_CLUSTER_NAME="stackforge"
 REPO_RAW="https://raw.githubusercontent.com/ry-ops/stackforge/main"
-REPO_LOCAL="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "${HOME}/.stackforge")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd || echo "${HOME}/.stackforge")"
+REPO_LOCAL="${SCRIPT_DIR}"
 
 # Port assignments
 PORT_DASHBOARD=30080
@@ -68,7 +69,7 @@ DOCKER_INSTALLED=false
 K3S_INSTALLED=false
 K3D_INSTALLED=false
 HELM_INSTALLED=false
-INSTALLED_SERVICES=()
+INSTALLED_SERVICES=""
 
 # ─── Colors ─────────────────────────────────────────────────
 RESET='\033[0m';    BOLD='\033[1m';     DIM='\033[2m'
@@ -78,18 +79,25 @@ BGREEN='\033[1;32m'; BCYAN='\033[1;36m'; BYELLOW='\033[1;33m'; BRED='\033[1;31m'
 
 # ─── Logging ─────────────────────────────────────────────────
 mkdir -p "${STACKFORGE_DIR}"
-exec > >(tee -a "${LOG_FILE}") 2>&1
 
-log()     { echo -e "${DIM}$(date '+%H:%M:%S')${RESET} ${WHITE}$*${RESET}"; }
-info()    { echo -e "${CYAN}  →${RESET} $*"; }
-ok()      { echo -e "${BGREEN}  ✔${RESET} $*"; }
-warn()    { echo -e "${BYELLOW}  ⚠${RESET} $*"; }
-err()     { echo -e "${BRED}  ✖${RESET} $*" >&2; }
+# Set up logging via a FIFO so output goes to both stdout and log file
+_LOG_FIFO="${STACKFORGE_DIR}/.log_fifo.$$"
+_cleanup_fifo() { rm -f "${_LOG_FIFO}"; }
+trap _cleanup_fifo EXIT
+mkfifo "${_LOG_FIFO}"
+tee -a "${LOG_FILE}" < "${_LOG_FIFO}" &
+exec > "${_LOG_FIFO}" 2>&1
+
+log()     { printf "${DIM}%s${RESET} ${WHITE}%s${RESET}\n" "$(date '+%H:%M:%S')" "$*"; }
+info()    { printf "${CYAN}  →${RESET} %s\n" "$*"; }
+ok()      { printf "${BGREEN}  ✔${RESET} %s\n" "$*"; }
+warn()    { printf "${BYELLOW}  ⚠${RESET} %s\n" "$*"; }
+err()     { printf "${BRED}  ✖${RESET} %s\n" "$*" >&2; }
 die()     { err "$*"; exit 1; }
-section() { echo -e "\n${BCYAN}━━━ ${BOLD}$*${RESET}${BCYAN} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"; }
+section() { printf "\n${BCYAN}━━━ ${BOLD}%s${RESET}${BCYAN} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n" "$*"; }
 
 banner() {
-  echo -e "${BCYAN}"
+  printf "${BCYAN}"
   cat << 'BANNER'
   ███████╗████████╗ █████╗  ██████╗██╗  ██╗███████╗ ██████╗ ██████╗  ██████╗ ███████╗
   ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
@@ -98,9 +106,9 @@ banner() {
   ███████║   ██║   ██║  ██║╚██████╗██║  ██╗██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
   ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 BANNER
-  echo -e "${RESET}"
-  echo -e "  ${DIM}v${STACKFORGE_VERSION} — guided homelab infrastructure bootstrapper${RESET}"
-  echo -e "  ${DIM}github.com/ry-ops/stackforge${RESET}\n"
+  printf "${RESET}\n"
+  printf "  ${DIM}v%s — guided homelab infrastructure bootstrapper${RESET}\n" "${STACKFORGE_VERSION}"
+  printf "  ${DIM}github.com/ry-ops/stackforge${RESET}\n\n"
 }
 
 # ─── kubectl / helm wrappers ─────────────────────────────────
@@ -113,20 +121,45 @@ hm() { KUBECONFIG="${STACKFORGE_KUBECONFIG}" helm "$@"; }
 prompt_yn() {
   local q="$1" default="${2:-y}"
   local display
-  [[ "$default" == "y" ]] \
-    && display="${BGREEN}Y${RESET}${DIM}/n${RESET}" \
-    || display="${DIM}y/${RESET}${RED}N${RESET}"
-  echo -ne "  ${CYAN}?${RESET} ${q} [${display}] "
-  read -r reply; reply="${reply:-$default}"
-  [[ "${reply,,}" == "y" ]]
+  if [ "$default" = "y" ]; then
+    display="${BGREEN}Y${RESET}${DIM}/n${RESET}"
+  else
+    display="${DIM}y/${RESET}${RED}N${RESET}"
+  fi
+  printf "  ${CYAN}?${RESET} %s [%b] " "$q" "$display"
+  read -r reply
+  reply="${reply:-$default}"
+  reply=$(printf '%s' "$reply" | tr 'A-Z' 'a-z')
+  [ "$reply" = "y" ]
 }
 
 prompt_input() {
   local q="$1" default="${2:-}"
-  [[ -n "$default" ]] \
-    && echo -ne "  ${CYAN}?${RESET} ${q} ${DIM}[${default}]${RESET} " \
-    || echo -ne "  ${CYAN}?${RESET} ${q} "
-  read -r reply; echo "${reply:-$default}"
+  if [ -n "$default" ]; then
+    printf "  ${CYAN}?${RESET} %s ${DIM}[%s]${RESET} " "$q" "$default"
+  else
+    printf "  ${CYAN}?${RESET} %s " "$q"
+  fi
+  read -r reply
+  printf '%s' "${reply:-$default}"
+}
+
+# ─── Service list helpers (replaces bash arrays) ─────────────
+svc_add() {
+  if [ -z "$INSTALLED_SERVICES" ]; then
+    INSTALLED_SERVICES="$1"
+  else
+    INSTALLED_SERVICES="${INSTALLED_SERVICES}
+$1"
+  fi
+}
+
+svc_count() {
+  if [ -z "$INSTALLED_SERVICES" ]; then
+    echo 0
+  else
+    printf '%s\n' "$INSTALLED_SERVICES" | wc -l | tr -d ' '
+  fi
 }
 
 # ─── Environment Detection ───────────────────────────────────
@@ -141,10 +174,11 @@ detect_environment() {
     *)             die "Unsupported CPU architecture: ${ARCH}" ;;
   esac
 
-  local kernel; kernel=$(uname -s)
+  local kernel
+  kernel=$(uname -s)
 
   # ── macOS ──────────────────────────────────────────────────
-  if [[ "$kernel" == "Darwin" ]]; then
+  if [ "$kernel" = "Darwin" ]; then
     ENV_MODE="docker-desktop"
     OS_FAMILY="darwin"
     OS_PRETTY="macOS $(sw_vers -productVersion 2>/dev/null || true)"
@@ -156,7 +190,7 @@ detect_environment() {
   fi
 
   # ── Linux: check WSL2 first ────────────────────────────────
-  if [[ -f /proc/version ]] && grep -qiE "microsoft|wsl" /proc/version 2>/dev/null; then
+  if [ -f /proc/version ] && grep -qiE "microsoft|wsl" /proc/version 2>/dev/null; then
     ENV_MODE="wsl2"
     ACCESS_HOST="127.0.0.1"
     NODE_IP="127.0.0.1"
@@ -176,9 +210,9 @@ detect_environment() {
 }
 
 _detect_linux_distro() {
-  [[ -f /etc/os-release ]] || die "/etc/os-release missing — cannot identify Linux distro."
+  [ -f /etc/os-release ] || die "/etc/os-release missing — cannot identify Linux distro."
   # shellcheck source=/dev/null
-  source /etc/os-release
+  . /etc/os-release
   local id="${ID:-}" like="${ID_LIKE:-}"
   OS_PRETTY="${PRETTY_NAME:-Linux}"
   case "${id}" in
@@ -198,15 +232,15 @@ _detect_linux_distro() {
 }
 
 _require_docker_desktop() {
-  if ! command -v docker &>/dev/null; then
+  if ! command -v docker >/dev/null 2>&1; then
     echo ""
     err "Docker Desktop not found. Please install it first:"
-    echo -e "  ${DIM}macOS:   https://docs.docker.com/desktop/install/mac-install/${RESET}"
-    echo -e "  ${DIM}Windows: https://docs.docker.com/desktop/install/windows-install/${RESET}"
+    printf "  ${DIM}macOS:   https://docs.docker.com/desktop/install/mac-install/${RESET}\n"
+    printf "  ${DIM}Windows: https://docs.docker.com/desktop/install/windows-install/${RESET}\n"
     echo ""
     die "Docker Desktop is required for this environment."
   fi
-  if ! docker info &>/dev/null; then
+  if ! docker info >/dev/null 2>&1; then
     die "Docker is installed but not running. Start Docker Desktop first, then re-run stackforge."
   fi
   DOCKER_INSTALLED=true
@@ -215,7 +249,7 @@ _require_docker_desktop() {
 
 # ─── Package Manager (bare-metal only) ───────────────────────
 pkg_update() {
-  [[ "${ENV_MODE}" == "baremetal" ]] || return 0
+  [ "${ENV_MODE}" = "baremetal" ] || return 0
   info "Updating package lists..."
   case "${OS_FAMILY}" in
     debian)        sudo apt-get update -qq ;;
@@ -227,7 +261,7 @@ pkg_update() {
 }
 
 pkg_install() {
-  [[ "${ENV_MODE}" == "baremetal" ]] || return 0
+  [ "${ENV_MODE}" = "baremetal" ] || return 0
   info "Installing packages: $*"
   case "${OS_FAMILY}" in
     debian)        sudo apt-get install -y -qq "$@" ;;
@@ -243,23 +277,23 @@ pkg_install() {
 check_prerequisites() {
   section "Checking Prerequisites"
 
-  if [[ "${ENV_MODE}" == "baremetal" ]]; then
-    [[ $EUID -ne 0 ]] || die "Don't run as root. stackforge uses sudo internally."
-    command -v sudo &>/dev/null || die "sudo is required but not installed."
-    local missing=()
-    for cmd in curl; do command -v "$cmd" &>/dev/null || missing+=("$cmd"); done
-    if [[ ${#missing[@]} -gt 0 ]]; then
-      pkg_update; pkg_install "${missing[@]}"
+  if [ "${ENV_MODE}" = "baremetal" ]; then
+    [ "$(id -u)" -ne 0 ] || die "Don't run as root. stackforge uses sudo internally."
+    command -v sudo >/dev/null 2>&1 || die "sudo is required but not installed."
+    if ! command -v curl >/dev/null 2>&1; then
+      pkg_update
+      pkg_install curl
     fi
   fi
 
-  command -v k3s  &>/dev/null && K3S_INSTALLED=true  && ok "k3s:  already installed"
-  command -v k3d  &>/dev/null && K3D_INSTALLED=true  && ok "k3d:  already installed"
-  command -v helm &>/dev/null && HELM_INSTALLED=true && ok "Helm: already installed"
+  command -v k3s  >/dev/null 2>&1 && K3S_INSTALLED=true  && ok "k3s:  already installed"
+  command -v k3d  >/dev/null 2>&1 && K3D_INSTALLED=true  && ok "k3d:  already installed"
+  command -v helm >/dev/null 2>&1 && HELM_INSTALLED=true && ok "Helm: already installed"
 
   # Warn but NEVER touch existing kubeconfig
-  if [[ -f "${HOME}/.kube/config" ]]; then
-    local n; n=$(kubectl config get-contexts --no-headers 2>/dev/null | wc -l || echo "?")
+  if [ -f "${HOME}/.kube/config" ]; then
+    local n
+    n=$(kubectl config get-contexts --no-headers 2>/dev/null | wc -l || echo "?")
     warn "Found existing ~/.kube/config (${n} context(s)) — stackforge will NOT touch it."
     warn "All stackforge access uses: ${STACKFORGE_KUBECONFIG}"
   fi
@@ -267,13 +301,14 @@ check_prerequisites() {
 
 # ─── Tooling ──────────────────────────────────────────────────
 install_kubectl() {
-  command -v kubectl &>/dev/null && { ok "kubectl: already installed"; return; }
+  command -v kubectl >/dev/null 2>&1 && { ok "kubectl: already installed"; return; }
   info "Installing kubectl..."
-  local ver; ver=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
+  local ver
+  ver=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
   case "${OS_FAMILY}" in
     darwin)
-      if command -v brew &>/dev/null; then
-        brew install kubectl &>/dev/null
+      if command -v brew >/dev/null 2>&1; then
+        brew install kubectl >/dev/null 2>&1
       else
         curl -fsSLo /usr/local/bin/kubectl \
           "https://dl.k8s.io/release/${ver}/bin/darwin/${ARCH_LABEL}/kubectl"
@@ -291,18 +326,18 @@ install_kubectl() {
 }
 
 install_helm() {
-  [[ "${HELM_INSTALLED}" == "true" ]] && { ok "Helm: already installed"; return; }
+  [ "${HELM_INSTALLED}" = "true" ] && { ok "Helm: already installed"; return; }
   info "Installing Helm..."
   curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 \
-    | bash -s -- --no-sudo
+    | sh -s -- --no-sudo
   HELM_INSTALLED=true
   ok "Helm installed."
 }
 
 install_k3d() {
-  [[ "${K3D_INSTALLED}" == "true" ]] && { ok "k3d: already installed"; return; }
+  [ "${K3D_INSTALLED}" = "true" ] && { ok "k3d: already installed"; return; }
   info "Installing k3d (k3s-in-Docker)..."
-  curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+  curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | sh
   K3D_INSTALLED=true
   ok "k3d installed."
 }
@@ -310,10 +345,10 @@ install_k3d() {
 # ─── Docker Engine (bare-metal only) ─────────────────────────
 install_docker_baremetal() {
   section "Installing Docker Engine"
-  [[ "${DOCKER_INSTALLED}" == "true" ]] && { info "Docker already installed."; return; }
+  [ "${DOCKER_INSTALLED}" = "true" ] && { info "Docker already installed."; return; }
 
   # shellcheck source=/dev/null
-  [[ -f /etc/os-release ]] && source /etc/os-release
+  [ -f /etc/os-release ] && . /etc/os-release
 
   case "${OS_FAMILY}" in
     debian)
@@ -352,8 +387,8 @@ install_docker_baremetal() {
 # ─── Cluster Bootstrap: Docker Desktop / WSL2 (k3d) ──────────
 bootstrap_k3d() {
   section "Bootstrapping k3d Cluster"
-  echo -e "  ${DIM}Mode: k3s running inside Docker Desktop containers${RESET}"
-  echo -e "  ${DIM}1 control-plane + 2 worker nodes. No root. No systemd. Fully isolated.${RESET}\n"
+  printf "  ${DIM}Mode: k3s running inside Docker Desktop containers${RESET}\n"
+  printf "  ${DIM}1 control-plane + 2 worker nodes. No root. No systemd. Fully isolated.${RESET}\n\n"
 
   # Check if cluster already exists
   if k3d cluster list 2>/dev/null | grep -q "^${K3D_CLUSTER_NAME}"; then
@@ -396,8 +431,9 @@ bootstrap_k3d() {
   local t=0
   until kc get nodes 2>/dev/null | grep -v "NotReady" | grep -qc "Ready" | grep -q "[1-9]" \
       || kc get nodes 2>/dev/null | grep -c "Ready" | grep -q "[1-9]"; do
-    sleep 4; t=$((t+4)); [[ $t -ge 120 ]] && die "Timed out waiting for cluster."
-    echo -ne "  ${DIM}waiting... ${t}s${RESET}\r"
+    sleep 4; t=$((t+4))
+    [ $t -ge 120 ] && die "Timed out waiting for cluster."
+    printf "  ${DIM}waiting... %ds${RESET}\r" "$t"
   done
   echo ""
   ok "Cluster ready:"
@@ -408,7 +444,7 @@ bootstrap_k3d() {
 bootstrap_k3s_master() {
   section "Bootstrapping k3s Control Plane"
 
-  if [[ "${K3S_INSTALLED}" == "true" ]]; then
+  if [ "${K3S_INSTALLED}" = "true" ]; then
     info "k3s already installed — configuring kubeconfig."
   else
     info "Installing k3s ${K3S_VERSION}..."
@@ -437,14 +473,16 @@ bootstrap_k3s_master() {
   info "Waiting for control plane..."
   local t=0
   until kc get nodes 2>/dev/null | grep -q "Ready"; do
-    sleep 5; t=$((t+5)); [[ $t -ge 120 ]] && die "Timed out waiting for k3s."
-    echo -ne "  ${DIM}waiting... ${t}s${RESET}\r"
+    sleep 5; t=$((t+5))
+    [ $t -ge 120 ] && die "Timed out waiting for k3s."
+    printf "  ${DIM}waiting... %ds${RESET}\r" "$t"
   done
   echo ""
   ok "Control plane Ready."
 
   # Save state for workers
-  local token; token=$(sudo cat /var/lib/rancher/k3s/server/node-token)
+  local token
+  token=$(sudo cat /var/lib/rancher/k3s/server/node-token)
   {
     echo "K3S_TOKEN=${token}"
     echo "MASTER_IP=${NODE_IP}"
@@ -459,8 +497,10 @@ bootstrap_k3s_master() {
 
 bootstrap_k3s_worker() {
   section "Joining Cluster as Worker Node"
-  local master_ip; master_ip=$(prompt_input "Master node IP address")
-  local token;     token=$(prompt_input "Node token (from ${STATE_FILE} on master)")
+  local master_ip
+  master_ip=$(prompt_input "Master node IP address")
+  local token
+  token=$(prompt_input "Node token (from ${STATE_FILE} on master)")
   info "Joining ${master_ip}..."
   curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${K3S_VERSION}" \
     K3S_URL="https://${master_ip}:6443" \
@@ -472,30 +512,32 @@ bootstrap_k3s_worker() {
 
 _print_worker_box() {
   local token="$1"
+  local token_short
+  token_short=$(printf '%.24s' "$token")
   echo ""
-  echo -e "  ${BYELLOW}╔═══════════════════════════════════════════════════════════════╗${RESET}"
-  echo -e "  ${BYELLOW}║  Add Worker Nodes (run one of these on each worker)           ║${RESET}"
-  echo -e "  ${BYELLOW}║                                                               ║${RESET}"
-  echo -e "  ${BYELLOW}║  Option A — guided wizard:                                    ║${RESET}"
-  echo -e "  ${BYELLOW}║    bash stackforge.sh --worker                                ║${RESET}"
-  echo -e "  ${BYELLOW}║                                                               ║${RESET}"
-  echo -e "  ${BYELLOW}║  Option B — one-liner:                                        ║${RESET}"
-  echo -e "  ${BYELLOW}║    curl -sfL https://get.k3s.io | \\                           ║${RESET}"
-  printf   "  ${BYELLOW}║      K3S_URL=https://%s:6443 \\                    ║${RESET}\n" "${NODE_IP}"
-  printf   "  ${BYELLOW}║      K3S_TOKEN=%s... \\     ║${RESET}\n" "${token:0:24}"
-  echo -e "  ${BYELLOW}║      sh -                                                     ║${RESET}"
-  echo -e "  ${BYELLOW}║                                                               ║${RESET}"
-  echo -e "  ${BYELLOW}║  Full token in: ~/.stackforge/state.env                       ║${RESET}"
-  echo -e "  ${BYELLOW}╚═══════════════════════════════════════════════════════════════╝${RESET}"
+  printf "  ${BYELLOW}╔═══════════════════════════════════════════════════════════════╗${RESET}\n"
+  printf "  ${BYELLOW}║  Add Worker Nodes (run one of these on each worker)           ║${RESET}\n"
+  printf "  ${BYELLOW}║                                                               ║${RESET}\n"
+  printf "  ${BYELLOW}║  Option A — guided wizard:                                    ║${RESET}\n"
+  printf "  ${BYELLOW}║    sh stackforge.sh --worker                                  ║${RESET}\n"
+  printf "  ${BYELLOW}║                                                               ║${RESET}\n"
+  printf "  ${BYELLOW}║  Option B — one-liner:                                        ║${RESET}\n"
+  printf "  ${BYELLOW}║    curl -sfL https://get.k3s.io | \\\\                           ║${RESET}\n"
+  printf "  ${BYELLOW}║      K3S_URL=https://%s:6443 \\\\                    ║${RESET}\n" "${NODE_IP}"
+  printf "  ${BYELLOW}║      K3S_TOKEN=%s... \\\\     ║${RESET}\n" "${token_short}"
+  printf "  ${BYELLOW}║      sh -                                                     ║${RESET}\n"
+  printf "  ${BYELLOW}║                                                               ║${RESET}\n"
+  printf "  ${BYELLOW}║  Full token in: ~/.stackforge/state.env                       ║${RESET}\n"
+  printf "  ${BYELLOW}╚═══════════════════════════════════════════════════════════════╝${RESET}\n"
   echo ""
 }
 
 # ─── Services ────────────────────────────────────────────────
 install_traefik() {
   section "Installing Traefik Ingress Controller"
-  hm repo add traefik https://traefik.github.io/charts --force-update &>/dev/null
-  hm repo update &>/dev/null
-  kc create namespace traefik --dry-run=client -o yaml | kc apply -f - &>/dev/null
+  hm repo add traefik https://traefik.github.io/charts --force-update >/dev/null 2>&1
+  hm repo update >/dev/null 2>&1
+  kc create namespace traefik --dry-run=client -o yaml | kc apply -f - >/dev/null 2>&1
   hm upgrade --install traefik traefik/traefik \
     --namespace traefik \
     --set service.type=NodePort \
@@ -504,14 +546,14 @@ install_traefik() {
     --set "ingressRoute.dashboard.enabled=true" \
     --wait --timeout 5m
   ok "Traefik → http://${ACCESS_HOST}:${PORT_TRAEFIK_HTTP}/dashboard/"
-  INSTALLED_SERVICES+=("Traefik|http://${ACCESS_HOST}:${PORT_TRAEFIK_HTTP}/dashboard/|Ingress Controller")
+  svc_add "Traefik|http://${ACCESS_HOST}:${PORT_TRAEFIK_HTTP}/dashboard/|Ingress Controller"
 }
 
 install_portainer() {
   section "Installing Portainer CE"
-  kc create namespace portainer --dry-run=client -o yaml | kc apply -f - &>/dev/null
-  hm repo add portainer https://portainer.github.io/k8s/ --force-update &>/dev/null
-  hm repo update &>/dev/null
+  kc create namespace portainer --dry-run=client -o yaml | kc apply -f - >/dev/null 2>&1
+  hm repo add portainer https://portainer.github.io/k8s/ --force-update >/dev/null 2>&1
+  hm repo update >/dev/null 2>&1
   hm upgrade --install portainer portainer/portainer \
     --namespace portainer \
     --set service.type=NodePort \
@@ -519,15 +561,15 @@ install_portainer() {
     --set "service.httpsNodePort=${PORT_PORTAINER_HTTPS}" \
     --wait --timeout 5m
   ok "Portainer → https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}"
-  INSTALLED_SERVICES+=("Portainer|https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}|Container Management")
+  svc_add "Portainer|https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}|Container Management"
 }
 
 install_monitoring() {
   section "Installing Prometheus + Grafana"
   hm repo add prometheus-community \
-    https://prometheus-community.github.io/helm-charts --force-update &>/dev/null
-  hm repo update &>/dev/null
-  kc create namespace monitoring --dry-run=client -o yaml | kc apply -f - &>/dev/null
+    https://prometheus-community.github.io/helm-charts --force-update >/dev/null 2>&1
+  hm repo update >/dev/null 2>&1
+  kc create namespace monitoring --dry-run=client -o yaml | kc apply -f - >/dev/null 2>&1
   hm upgrade --install kube-prom prometheus-community/kube-prometheus-stack \
     --namespace monitoring \
     --set "grafana.service.type=NodePort" \
@@ -540,25 +582,25 @@ install_monitoring() {
   ok "Grafana    → http://${ACCESS_HOST}:${PORT_GRAFANA}  (admin / stackforge)"
   ok "Prometheus → http://${ACCESS_HOST}:${PORT_PROMETHEUS}"
   warn "Change the Grafana admin password after first login!"
-  INSTALLED_SERVICES+=("Grafana|http://${ACCESS_HOST}:${PORT_GRAFANA}|Metrics & Dashboards")
-  INSTALLED_SERVICES+=("Prometheus|http://${ACCESS_HOST}:${PORT_PROMETHEUS}|Metrics Backend")
+  svc_add "Grafana|http://${ACCESS_HOST}:${PORT_GRAFANA}|Metrics & Dashboards"
+  svc_add "Prometheus|http://${ACCESS_HOST}:${PORT_PROMETHEUS}|Metrics Backend"
 }
 
 install_uptime_kuma() {
   section "Installing Uptime Kuma"
-  kc create namespace monitoring --dry-run=client -o yaml | kc apply -f - &>/dev/null
+  kc create namespace monitoring --dry-run=client -o yaml | kc apply -f - >/dev/null 2>&1
   kc apply -f "${REPO_RAW}/manifests/uptime-kuma/uptime-kuma.yaml" 2>/dev/null \
     || kc apply -f "${REPO_LOCAL}/manifests/uptime-kuma/uptime-kuma.yaml"
   ok "Uptime Kuma → http://${ACCESS_HOST}:${PORT_UPTIME_KUMA}"
-  INSTALLED_SERVICES+=("Uptime Kuma|http://${ACCESS_HOST}:${PORT_UPTIME_KUMA}|Status Monitoring")
+  svc_add "Uptime Kuma|http://${ACCESS_HOST}:${PORT_UPTIME_KUMA}|Status Monitoring"
 }
 
 install_dashboard() {
   section "Installing Stackforge Portal Dashboard"
-  kc create namespace stackforge --dry-run=client -o yaml | kc apply -f - &>/dev/null
+  kc create namespace stackforge --dry-run=client -o yaml | kc apply -f - >/dev/null 2>&1
 
   local html="${REPO_LOCAL}/dashboard/index.html"
-  if [[ ! -f "${html}" ]]; then
+  if [ ! -f "${html}" ]; then
     mkdir -p "${STACKFORGE_DIR}/dashboard"
     curl -fsSL "${REPO_RAW}/dashboard/index.html" -o "${STACKFORGE_DIR}/dashboard/index.html"
     html="${STACKFORGE_DIR}/dashboard/index.html"
@@ -573,7 +615,7 @@ install_dashboard() {
     || kc apply -f "${REPO_LOCAL}/manifests/dashboard/dashboard.yaml"
 
   ok "Dashboard → http://${ACCESS_HOST}:${PORT_DASHBOARD}"
-  INSTALLED_SERVICES+=("Stackforge Portal|http://${ACCESS_HOST}:${PORT_DASHBOARD}|Your Homelab Portal")
+  svc_add "Stackforge Portal|http://${ACCESS_HOST}:${PORT_DASHBOARD}|Your Homelab Portal"
 }
 
 # ─── Destroy ──────────────────────────────────────────────────
@@ -589,9 +631,9 @@ destroy_cluster() {
         && k3d cluster delete "${K3D_CLUSTER_NAME}" && ok "k3d cluster deleted." || true
       ;;
     baremetal)
-      command -v k3s-uninstall.sh &>/dev/null \
+      command -v k3s-uninstall.sh >/dev/null 2>&1 \
         && sudo k3s-uninstall.sh && ok "k3s master uninstalled." || true
-      command -v k3s-agent-uninstall.sh &>/dev/null \
+      command -v k3s-agent-uninstall.sh >/dev/null 2>&1 \
         && sudo k3s-agent-uninstall.sh && ok "k3s agent uninstalled." || true
       ;;
   esac
@@ -605,45 +647,44 @@ destroy_cluster() {
 # ─── kubeconfig Hint Box ──────────────────────────────────────
 print_kubeconfig_hint() {
   echo ""
-  echo -e "  ${BYELLOW}╔═══════════════════════════════════════════════════════════════╗${RESET}"
-  echo -e "  ${BYELLOW}║  Accessing your cluster                                       ║${RESET}"
-  echo -e "  ${BYELLOW}║                                                               ║${RESET}"
-  echo -e "  ${BYELLOW}║  stackforge NEVER touches ~/.kube/config                     ║${RESET}"
-  echo -e "  ${BYELLOW}║                                                               ║${RESET}"
-  echo -e "  ${BYELLOW}║  One-off:                                                     ║${RESET}"
-  echo -e "  ${BYELLOW}║    KUBECONFIG=~/.stackforge/kubeconfig kubectl get nodes      ║${RESET}"
-  echo -e "  ${BYELLOW}║                                                               ║${RESET}"
-  echo -e "  ${BYELLOW}║  Alias (add to ~/.bashrc or ~/.zshrc):                        ║${RESET}"
-  echo -e "  ${BYELLOW}║    alias sfk='KUBECONFIG=~/.stackforge/kubeconfig kubectl'    ║${RESET}"
-  echo -e "  ${BYELLOW}║                                                               ║${RESET}"
-  echo -e "  ${BYELLOW}║  Temporary shell switch:                                      ║${RESET}"
-  echo -e "  ${BYELLOW}║    export KUBECONFIG=~/.stackforge/kubeconfig                 ║${RESET}"
-  echo -e "  ${BYELLOW}╚═══════════════════════════════════════════════════════════════╝${RESET}"
+  printf "  ${BYELLOW}╔═══════════════════════════════════════════════════════════════╗${RESET}\n"
+  printf "  ${BYELLOW}║  Accessing your cluster                                       ║${RESET}\n"
+  printf "  ${BYELLOW}║                                                               ║${RESET}\n"
+  printf "  ${BYELLOW}║  stackforge NEVER touches ~/.kube/config                     ║${RESET}\n"
+  printf "  ${BYELLOW}║                                                               ║${RESET}\n"
+  printf "  ${BYELLOW}║  One-off:                                                     ║${RESET}\n"
+  printf "  ${BYELLOW}║    KUBECONFIG=~/.stackforge/kubeconfig kubectl get nodes      ║${RESET}\n"
+  printf "  ${BYELLOW}║                                                               ║${RESET}\n"
+  printf "  ${BYELLOW}║  Alias (add to ~/.bashrc or ~/.zshrc):                        ║${RESET}\n"
+  printf "  ${BYELLOW}║    alias sfk='KUBECONFIG=~/.stackforge/kubeconfig kubectl'    ║${RESET}\n"
+  printf "  ${BYELLOW}║                                                               ║${RESET}\n"
+  printf "  ${BYELLOW}║  Temporary shell switch:                                      ║${RESET}\n"
+  printf "  ${BYELLOW}║    export KUBECONFIG=~/.stackforge/kubeconfig                 ║${RESET}\n"
+  printf "  ${BYELLOW}╚═══════════════════════════════════════════════════════════════╝${RESET}\n"
   echo ""
 }
 
 # ─── Summary ──────────────────────────────────────────────────
 print_summary() {
   echo ""
-  echo -e "${BCYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
-  echo -e "${BGREEN}  🚀  Stackforge complete!  [mode: ${ENV_MODE}]${RESET}"
-  echo -e "${BCYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-  echo -e "  ${BOLD}Cluster nodes:${RESET}"
+  printf "${BCYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
+  printf "${BGREEN}  🚀  Stackforge complete!  [mode: %s]${RESET}\n" "${ENV_MODE}"
+  printf "${BCYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
+  printf "  ${BOLD}Cluster nodes:${RESET}\n"
   kc get nodes 2>/dev/null | sed 's/^/    /' || true
   echo ""
-  if [[ ${#INSTALLED_SERVICES[@]} -gt 0 ]]; then
-    echo -e "  ${BOLD}Installed services:${RESET}"
-    for svc in "${INSTALLED_SERVICES[@]}"; do
-      IFS='|' read -r name url desc <<< "${svc}"
+  if [ "$(svc_count)" -gt 0 ]; then
+    printf "  ${BOLD}Installed services:${RESET}\n"
+    printf '%s\n' "$INSTALLED_SERVICES" | while IFS='|' read -r name url desc; do
       printf "    ${BGREEN}%-24s${RESET} ${CYAN}%-48s${RESET} ${DIM}%s${RESET}\n" "${name}" "${url}" "${desc}"
     done
     echo ""
-    echo -e "  ${BYELLOW}→ Open your portal: http://${ACCESS_HOST}:${PORT_DASHBOARD}${RESET}"
+    printf "  ${BYELLOW}→ Open your portal: http://%s:%s${RESET}\n" "${ACCESS_HOST}" "${PORT_DASHBOARD}"
   fi
   echo ""
-  echo -e "  ${DIM}Kubeconfig : ${STACKFORGE_KUBECONFIG}${RESET}"
-  echo -e "  ${DIM}Log file   : ${LOG_FILE}${RESET}"
-  [[ -f "${STATE_FILE}" ]] && echo -e "  ${DIM}State file : ${STATE_FILE}${RESET}"
+  printf "  ${DIM}Kubeconfig : %s${RESET}\n" "${STACKFORGE_KUBECONFIG}"
+  printf "  ${DIM}Log file   : %s${RESET}\n" "${LOG_FILE}"
+  [ -f "${STATE_FILE}" ] && printf "  ${DIM}State file : %s${RESET}\n" "${STATE_FILE}"
   print_kubeconfig_hint
 }
 
@@ -654,7 +695,7 @@ main() {
 
   case "${1:-}" in
     --worker)
-      [[ "${ENV_MODE}" == "baremetal" ]] || die "--worker is only for bare-metal Linux."
+      [ "${ENV_MODE}" = "baremetal" ] || die "--worker is only for bare-metal Linux."
       check_prerequisites
       install_kubectl
       bootstrap_k3s_worker
@@ -672,11 +713,11 @@ main() {
 
   check_prerequisites
 
-  echo -e "  ${BOLD}Welcome to Stackforge!${RESET}"
-  echo -e "  ${DIM}Mode:       ${BCYAN}${ENV_MODE}${RESET}"
-  echo -e "  ${DIM}Access at:  ${BCYAN}${ACCESS_HOST}${RESET}"
-  echo -e "  ${DIM}Kubeconfig: ${BCYAN}${STACKFORGE_KUBECONFIG}${RESET}  ${DIM}(~/.kube/config will NOT be touched)${RESET}"
-  echo -e "  ${DIM}Every component is optional except the cluster itself.${RESET}\n"
+  printf "  ${BOLD}Welcome to Stackforge!${RESET}\n"
+  printf "  ${DIM}Mode:       ${BCYAN}%s${RESET}\n" "${ENV_MODE}"
+  printf "  ${DIM}Access at:  ${BCYAN}%s${RESET}\n" "${ACCESS_HOST}"
+  printf "  ${DIM}Kubeconfig: ${BCYAN}%s${RESET}  ${DIM}(~/.kube/config will NOT be touched)${RESET}\n" "${STACKFORGE_KUBECONFIG}"
+  printf "  ${DIM}Every component is optional except the cluster itself.${RESET}\n\n"
 
   # Phase 0 — tooling
   section "Phase 0: Tooling"

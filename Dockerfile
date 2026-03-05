@@ -5,7 +5,6 @@ LABEL org.opencontainers.image.description="Guided homelab infrastructure bootst
 LABEL org.opencontainers.image.licenses="MIT"
 
 RUN apk add --no-cache \
-      bash \
       curl \
       jq \
       openssl
