@@ -1,0 +1,93 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/ry-ops/stackforge/vex/2026-03-05",
+  "author": "ry-ops",
+  "timestamp": "2026-03-05T00:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {"@id": "CVE-2024-53427"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream jq vulnerability with no fix available in Alpine 3.21. The vulnerable code path is not exercised by stackforge."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2025-48060"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream jq vulnerability with no fix available in Alpine 3.21. The vulnerable code path is not exercised by stackforge."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2024-23337"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream jq vulnerability with no fix available in Alpine 3.21. The vulnerable code path is not exercised by stackforge."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2025-14017"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream curl vulnerability with no fix available in Alpine 3.21."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2025-13034"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream curl vulnerability with no fix available in Alpine 3.21."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2025-15079"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream curl vulnerability with no fix available in Alpine 3.21."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2025-14819"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream curl vulnerability with no fix available in Alpine 3.21."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2025-14524"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream curl vulnerability with no fix available in Alpine 3.21."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2025-10966"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream curl vulnerability with no fix available in Alpine 3.21."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2025-15224"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream curl vulnerability with no fix available in Alpine 3.21."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2025-60876"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream busybox vulnerability with no fix available in Alpine 3.21."
+    },
+    {
+      "vulnerability": {"@id": "CVE-2026-27171"},
+      "products": [{"@id": "pkg:docker/ryops/stackforge"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Upstream zlib vulnerability with no fix available in Alpine 3.21."
+    }
+  ]
+}
