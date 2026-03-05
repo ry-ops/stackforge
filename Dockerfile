@@ -1,4 +1,4 @@
-FROM alpine:3.20 AS base
+FROM alpine:3.21 AS base
 
 LABEL org.opencontainers.image.source="https://github.com/ry-ops/stackforge"
 LABEL org.opencontainers.image.description="Guided homelab infrastructure bootstrapper"
