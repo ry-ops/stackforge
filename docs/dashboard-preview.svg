@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" font-family="'Courier New', monospace">
+  <defs>
+    <style>
+      .bg { fill: #080c0f; }
+      .panel { fill: #0d1318; stroke: #1e2d3a; stroke-width: 1; }
+      .text-main { fill: #c8d8e8; font-size: 10px; }
+      .text-dim { fill: #4a6070; font-size: 8px; letter-spacing: 1px; }
+      .text-accent { fill: #00e5ff; font-size: 14px; font-weight: bold; }
+      .text-val { fill: #00e5ff; font-size: 22px; font-weight: bold; }
+      .text-val-green { fill: #39ff14; font-size: 22px; font-weight: bold; }
+      .text-val-orange { fill: #ff6b00; font-size: 22px; font-weight: bold; }
+      .text-val-yellow { fill: #ffd600; font-size: 22px; font-weight: bold; }
+      .bar-bg { fill: #1e2d3a; }
+      .bar-fill { fill: #00e5ff; }
+      .bar-warn { fill: #ffd600; }
+      .dot-green { fill: #39ff14; }
+      .dot-red { fill: #ff3b3b; }
+      .header-bar { fill: #080c0f; stroke: #1e2d3a; stroke-width: 1; }
+      .card { fill: #0d1318; stroke: #1e2d3a; stroke-width: 1; rx: 0; }
+      .title-text { fill: #00e5ff; font-size: 13px; font-weight: bold; letter-spacing: 3px; }
+      @keyframes glow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+      .pulse { animation: glow 2s ease-in-out infinite; }
+    </style>
+  </defs>
+  <rect width="900" height="500" class="bg" rx="8"/>
+
+  <!-- Browser chrome -->
+  <rect x="0" y="0" width="900" height="28" fill="#111820" rx="8"/>
+  <circle cx="18" cy="14" r="5" fill="#ff3b3b"/>
+  <circle cx="36" cy="14" r="5" fill="#ffd600"/>
+  <circle cx="54" cy="14" r="5" fill="#39ff14"/>
+  <rect x="180" y="6" width="540" height="16" fill="#0d1318" rx="3"/>
+  <text x="450" y="18" text-anchor="middle" class="text-dim">http://127.0.0.1:30080</text>
+
+  <!-- Header -->
+  <rect x="0" y="28" width="900" height="36" class="header-bar"/>
+  <text x="20" y="52" class="title-text">STACKFORGE // CONTROL</text>
+  <circle cx="750" cy="46" r="4" class="dot-green pulse"/>
+  <text x="760" y="49" class="text-dim">CLUSTER NOMINAL</text>
+
+  <!-- Stats Bar -->
+  <rect x="15" y="74" width="140" height="60" class="panel"/>
+  <text x="25" y="90" class="text-dim">NODES</text>
+  <text x="25" y="118" class="text-val-green">3</text>
+  <text x="25" y="130" class="text-dim">1 master · 2 workers</text>
+
+  <rect x="160" y="74" width="140" height="60" class="panel"/>
+  <text x="170" y="90" class="text-dim">PODS RUNNING</text>
+  <text x="170" y="118" class="text-val">21</text>
+  <text x="170" y="130" class="text-dim">across all namespaces</text>
+
+  <rect x="305" y="74" width="140" height="60" class="panel"/>
+  <text x="315" y="90" class="text-dim">CPU USAGE</text>
+  <text x="315" y="118" class="text-val-orange">32.4%</text>
+  <text x="315" y="130" class="text-dim">cluster avg</text>
+
+  <rect x="450" y="74" width="140" height="60" class="panel"/>
+  <text x="460" y="90" class="text-dim">MEMORY</text>
+  <text x="460" y="118" class="text-val-yellow">51.2%</text>
+  <text x="460" y="130" class="text-dim">cluster avg</text>
+
+  <rect x="595" y="74" width="140" height="60" class="panel"/>
+  <text x="605" y="90" class="text-dim">SERVICES</text>
+  <text x="605" y="118" class="text-val">5</text>
+  <text x="605" y="130" class="text-dim">deployed</text>
+
+  <rect x="740" y="74" width="145" height="60" class="panel"/>
+  <text x="750" y="90" class="text-dim">UPTIME</text>
+  <text x="750" y="118" class="text-val-green">2d 04:32:15</text>
+  <text x="750" y="130" class="text-dim">control plane</text>
+
+  <!-- Service Cards -->
+  <text x="20" y="160" class="text-dim">INSTALLED SERVICES</text>
+
+  <rect x="15" y="168" width="172" height="90" class="card"/>
+  <text x="30" y="188" font-size="16">🐳</text>
+  <text x="50" y="188" class="text-main" font-weight="bold">PORTAINER</text>
+  <text x="30" y="202" class="text-dim">Container Management</text>
+  <circle cx="30" cy="245" r="3" class="dot-green"/>
+  <text x="38" y="248" class="text-dim">UP (42ms)</text>
+
+  <rect x="192" y="168" width="172" height="90" class="card"/>
+  <text x="207" y="188" font-size="16">📊</text>
+  <text x="227" y="188" class="text-main" font-weight="bold">GRAFANA</text>
+  <text x="207" y="202" class="text-dim">Metrics &amp; Dashboards</text>
+  <circle cx="207" cy="245" r="3" class="dot-green"/>
+  <text x="215" y="248" class="text-dim">UP (18ms)</text>
+
+  <rect x="369" y="168" width="172" height="90" class="card"/>
+  <text x="384" y="188" font-size="16">🔥</text>
+  <text x="404" y="188" class="text-main" font-weight="bold">PROMETHEUS</text>
+  <text x="384" y="202" class="text-dim">Metrics Backend</text>
+  <circle cx="384" cy="245" r="3" class="dot-green"/>
+  <text x="392" y="248" class="text-dim">UP (12ms)</text>
+
+  <rect x="546" y="168" width="172" height="90" class="card"/>
+  <text x="561" y="188" font-size="16">🟢</text>
+  <text x="581" y="188" class="text-main" font-weight="bold">UPTIME KUMA</text>
+  <text x="561" y="202" class="text-dim">Status Monitoring</text>
+  <circle cx="561" cy="245" r="3" class="dot-green"/>
+  <text x="569" y="248" class="text-dim">UP (31ms)</text>
+
+  <rect x="723" y="168" width="162" height="90" class="card"/>
+  <text x="738" y="188" font-size="16">🔀</text>
+  <text x="758" y="188" class="text-main" font-weight="bold">TRAEFIK</text>
+  <text x="738" y="202" class="text-dim">Ingress Controller</text>
+  <circle cx="738" cy="245" r="3" class="dot-green"/>
+  <text x="746" y="248" class="text-dim">UP (8ms)</text>
+
+  <!-- Node Cards -->
+  <text x="20" y="285" class="text-dim">CLUSTER NODES</text>
+
+  <rect x="15" y="293" width="285" height="95" class="panel"/>
+  <text x="30" y="313" class="text-main" font-weight="bold">MASTER-01</text>
+  <text x="240" y="313" class="text-accent" font-size="8">MASTER</text>
+  <text x="30" y="332" class="text-dim">CPU</text>
+  <rect x="60" y="326" width="100" height="4" class="bar-bg"/>
+  <rect x="60" y="326" width="28" height="4" class="bar-fill"/>
+  <text x="170" y="332" class="text-main">28.2%</text>
+  <text x="30" y="350" class="text-dim">MEM</text>
+  <rect x="60" y="344" width="100" height="4" class="bar-bg"/>
+  <rect x="60" y="344" width="42" height="4" class="bar-fill"/>
+  <text x="170" y="350" class="text-main">42.1%</text>
+  <text x="30" y="368" class="text-dim">DISK</text>
+  <rect x="60" y="362" width="100" height="4" class="bar-bg"/>
+  <rect x="60" y="362" width="31" height="4" class="bar-fill"/>
+  <text x="170" y="368" class="text-main">31.0%</text>
+  <text x="30" y="384" class="text-dim">k3s  v1.29.4+k3s1</text>
+
+  <rect x="308" y="293" width="285" height="95" class="panel"/>
+  <text x="323" y="313" class="text-main" font-weight="bold">WORKER-01</text>
+  <text x="535" y="313" class="text-dim" font-size="8">WORKER</text>
+  <text x="323" y="332" class="text-dim">CPU</text>
+  <rect x="353" y="326" width="100" height="4" class="bar-bg"/>
+  <rect x="353" y="326" width="54" height="4" class="bar-fill"/>
+  <text x="463" y="332" class="text-main">54.3%</text>
+  <text x="323" y="350" class="text-dim">MEM</text>
+  <rect x="353" y="344" width="100" height="4" class="bar-bg"/>
+  <rect x="353" y="344" width="61" height="4" class="bar-warn"/>
+  <text x="463" y="350" class="text-main">61.0%</text>
+  <text x="323" y="368" class="text-dim">DISK</text>
+  <rect x="353" y="362" width="100" height="4" class="bar-bg"/>
+  <rect x="353" y="362" width="45" height="4" class="bar-fill"/>
+  <text x="463" y="368" class="text-main">45.2%</text>
+  <text x="323" y="384" class="text-dim">k3s  v1.29.4+k3s1</text>
+
+  <rect x="601" y="293" width="284" height="95" class="panel"/>
+  <text x="616" y="313" class="text-main" font-weight="bold">WORKER-02</text>
+  <text x="827" y="313" class="text-dim" font-size="8">WORKER</text>
+  <text x="616" y="332" class="text-dim">CPU</text>
+  <rect x="646" y="326" width="100" height="4" class="bar-bg"/>
+  <rect x="646" y="326" width="37" height="4" class="bar-fill"/>
+  <text x="756" y="332" class="text-main">37.1%</text>
+  <text x="616" y="350" class="text-dim">MEM</text>
+  <rect x="646" y="344" width="100" height="4" class="bar-bg"/>
+  <rect x="646" y="344" width="48" height="4" class="bar-fill"/>
+  <text x="756" y="350" class="text-main">48.4%</text>
+  <text x="616" y="368" class="text-dim">DISK</text>
+  <rect x="646" y="362" width="100" height="4" class="bar-bg"/>
+  <rect x="646" y="362" width="38" height="4" class="bar-fill"/>
+  <text x="756" y="368" class="text-main">38.0%</text>
+  <text x="616" y="384" class="text-dim">k3s  v1.29.4+k3s1</text>
+
+  <!-- Activity Log -->
+  <text x="20" y="413" class="text-dim">ACTIVITY LOG</text>
+  <rect x="15" y="420" width="870" height="70" class="panel"/>
+  <text x="25" y="436" class="text-dim">[14:32:01] [OK  ] [monitoring] Pulled: Successfully pulled image</text>
+  <text x="25" y="449" class="text-dim">[14:32:04] [OK  ] [stackforge] Started: Started container nginx</text>
+  <text x="25" y="462" class="text-dim">[14:32:08] [OK  ] [traefik] Scheduled: Successfully assigned pod</text>
+  <text x="25" y="475" class="text-dim">[14:32:12] [OK  ] [monitoring] Created: Created container grafana</text>
+  <rect x="25" y="480" width="7" height="3" class="bar-fill pulse"/>
+</svg>

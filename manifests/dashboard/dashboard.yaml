@@ -1,4 +1,67 @@
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sf-api
+  namespace: stackforge
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sf-api
+rules:
+  - apiGroups: [""]
+    resources: [nodes, pods, events, services]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: [nodes, pods]
+    verbs: [get, list]
+  - apiGroups: ["apps"]
+    resources: [deployments]
+    verbs: [get, list, watch, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sf-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sf-api
+subjects:
+  - kind: ServiceAccount
+    name: sf-api
+    namespace: stackforge
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sf-api-nginx-conf
+  namespace: stackforge
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+
+        location /api/ {
+            proxy_pass http://127.0.0.1:8080;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_connect_timeout 5s;
+            proxy_read_timeout 10s;
+        }
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,6 +79,7 @@ spec:
       labels:
         app: stackforge-dashboard
     spec:
+      serviceAccountName: sf-api
       containers:
         - name: nginx
           image: nginx:alpine
@@ -24,6 +88,8 @@ spec:
           volumeMounts:
             - name: dashboard
               mountPath: /usr/share/nginx/html
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
           resources:
             requests:
               memory: "16Mi"
@@ -31,10 +97,39 @@ spec:
             limits:
               memory: "64Mi"
               cpu: "100m"
+        - name: sf-api
+          image: ryops/sf-api:0.4.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
       volumes:
         - name: dashboard
           configMap:
             name: stackforge-dashboard
+        - name: nginx-conf
+          configMap:
+            name: sf-api-nginx-conf
 ---
 apiVersion: v1
 kind: Service

@@ -7,7 +7,7 @@
 #  ███████║   ██║   ██║  ██║╚██████╗██║  ██╗██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
 #  ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 #
-#  stackforge v0.3.6 — guided homelab infrastructure bootstrapper
+#  stackforge v0.4.0 — guided homelab infrastructure bootstrapper
 #
 #  Runs on:
 #    ┌─────────────────────┬────────────────────────────────────────────┐
@@ -36,7 +36,7 @@
 set -eu
 
 # ─── Globals ────────────────────────────────────────────────
-STACKFORGE_VERSION="0.3.6"
+STACKFORGE_VERSION="0.4.0"
 STACKFORGE_DIR="${HOME}/.stackforge"
 STACKFORGE_KUBECONFIG="${STACKFORGE_DIR}/kubeconfig"  # NEVER ~/.kube/config
 STATE_FILE="${STACKFORGE_DIR}/state.env"
@@ -56,6 +56,7 @@ PORT_TRAEFIK_HTTPS=32443
 PORT_GRAFANA=32000
 PORT_PROMETHEUS=32001
 PORT_UPTIME_KUMA=32100
+PORT_TRAEFIK_DASH=32090
 
 # Runtime state — populated by detect_environment()
 ENV_MODE=""        # "baremetal" | "docker-desktop" | "wsl2"
@@ -416,6 +417,7 @@ bootstrap_k3d() {
     --port "${PORT_GRAFANA}:${PORT_GRAFANA}@loadbalancer" \
     --port "${PORT_PROMETHEUS}:${PORT_PROMETHEUS}@loadbalancer" \
     --port "${PORT_UPTIME_KUMA}:${PORT_UPTIME_KUMA}@loadbalancer" \
+    --port "${PORT_TRAEFIK_DASH}:${PORT_TRAEFIK_DASH}@loadbalancer" \
     --wait
 
   # Write isolated kubeconfig — never merge, never touch ~/.kube/config
@@ -543,10 +545,14 @@ install_traefik() {
     --set service.type=NodePort \
     --set "ports.web.nodePort=${PORT_TRAEFIK_HTTP}" \
     --set "ports.websecure.nodePort=${PORT_TRAEFIK_HTTPS}" \
+    --set "ports.traefik.expose.default=true" \
+    --set "ports.traefik.exposedPort=9000" \
+    --set "ports.traefik.nodePort=${PORT_TRAEFIK_DASH}" \
     --set "ingressRoute.dashboard.enabled=true" \
     --wait --timeout 5m
-  ok "Traefik → http://${ACCESS_HOST}:${PORT_TRAEFIK_HTTP}/dashboard/"
-  svc_add "Traefik|http://${ACCESS_HOST}:${PORT_TRAEFIK_HTTP}/dashboard/|Ingress Controller"
+  ok "Traefik Dashboard → http://${ACCESS_HOST}:${PORT_TRAEFIK_DASH}/dashboard/"
+  ok "Traefik HTTP      → http://${ACCESS_HOST}:${PORT_TRAEFIK_HTTP}"
+  svc_add "Traefik Dashboard|http://${ACCESS_HOST}:${PORT_TRAEFIK_DASH}/dashboard/|Ingress Controller"
 }
 
 install_portainer() {
@@ -559,8 +565,11 @@ install_portainer() {
     --set service.type=NodePort \
     --set "service.nodePort=${PORT_PORTAINER_HTTP}" \
     --set "service.httpsNodePort=${PORT_PORTAINER_HTTPS}" \
+    --set "env[0].name=ADMIN_PASSWORD" \
+    --set "env[0].value=stackforge" \
     --wait --timeout 5m
-  ok "Portainer → https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}"
+  ok "Portainer → https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}  (admin / stackforge)"
+  warn "Change the Portainer admin password after first login!"
   svc_add "Portainer|https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}|Container Management"
 }
 
@@ -576,7 +585,7 @@ install_monitoring() {
     --set "grafana.service.nodePort=${PORT_GRAFANA}" \
     --set "grafana.adminPassword=stackforge" \
     --set "prometheus.service.type=NodePort" \
-    --set "prometheus.prometheusSpec.service.nodePort=${PORT_PROMETHEUS}" \
+    --set "prometheus.service.nodePort=${PORT_PROMETHEUS}" \
     --set "alertmanager.enabled=false" \
     --wait --timeout 10m
   ok "Grafana    → http://${ACCESS_HOST}:${PORT_GRAFANA}  (admin / stackforge)"
@@ -681,6 +690,13 @@ print_summary() {
     echo ""
     printf "  ${BYELLOW}→ Open your portal: http://%s:%s${RESET}\n" "${ACCESS_HOST}" "${PORT_DASHBOARD}"
   fi
+  echo ""
+  printf "  ${BOLD}Recommended Uptime Kuma monitors:${RESET}\n"
+  printf "    ${DIM}• Grafana       → http://%s:%s/api/health${RESET}\n" "${ACCESS_HOST}" "${PORT_GRAFANA}"
+  printf "    ${DIM}• Prometheus    → http://%s:%s/-/healthy${RESET}\n" "${ACCESS_HOST}" "${PORT_PROMETHEUS}"
+  printf "    ${DIM}• Traefik       → http://%s:%s/dashboard/${RESET}\n" "${ACCESS_HOST}" "${PORT_TRAEFIK_DASH}"
+  printf "    ${DIM}• Portainer     → https://%s:%s${RESET}\n" "${ACCESS_HOST}" "${PORT_PORTAINER_HTTPS}"
+  printf "    ${DIM}• Dashboard     → http://%s:%s${RESET}\n" "${ACCESS_HOST}" "${PORT_DASHBOARD}"
   echo ""
   printf "  ${DIM}Kubeconfig : %s${RESET}\n" "${STACKFORGE_KUBECONFIG}"
   printf "  ${DIM}Log file   : %s${RESET}\n" "${LOG_FILE}"

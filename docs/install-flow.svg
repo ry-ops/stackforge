@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 480" font-family="'Courier New', monospace">
+  <defs>
+    <style>
+      .bg { fill: #080c0f; }
+      .term-bg { fill: #0d1318; stroke: #1e2d3a; stroke-width: 1.5; rx: 6; }
+      .text-dim { fill: #4a6070; font-size: 11px; }
+      .text-main { fill: #c8d8e8; font-size: 11px; }
+      .text-green { fill: #39ff14; font-size: 11px; }
+      .text-cyan { fill: #00e5ff; font-size: 11px; font-weight: bold; }
+      .text-orange { fill: #ff6b00; font-size: 11px; }
+      .text-yellow { fill: #ffd600; font-size: 11px; }
+      .text-title { fill: #00e5ff; font-size: 13px; font-weight: bold; letter-spacing: 2px; }
+      .prompt { fill: #39ff14; font-size: 11px; }
+      .cursor { fill: #00e5ff; }
+      @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+      .blink { animation: blink 1s step-end infinite; }
+      @keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
+      .line1 { animation: reveal 0.3s ease 0.5s both; }
+      .line2 { animation: reveal 0.3s ease 1.0s both; }
+      .line3 { animation: reveal 0.3s ease 1.5s both; }
+      .line4 { animation: reveal 0.3s ease 2.0s both; }
+      .line5 { animation: reveal 0.3s ease 2.5s both; }
+      .line6 { animation: reveal 0.3s ease 3.0s both; }
+      .line7 { animation: reveal 0.3s ease 3.5s both; }
+      .line8 { animation: reveal 0.3s ease 4.0s both; }
+      .line9 { animation: reveal 0.3s ease 4.5s both; }
+      .line10 { animation: reveal 0.3s ease 5.0s both; }
+      .line11 { animation: reveal 0.3s ease 5.5s both; }
+      .line12 { animation: reveal 0.3s ease 6.0s both; }
+      .line13 { animation: reveal 0.3s ease 6.5s both; }
+      .line14 { animation: reveal 0.3s ease 7.0s both; }
+      .line15 { animation: reveal 0.3s ease 7.5s both; }
+      .line16 { animation: reveal 0.3s ease 8.0s both; }
+    </style>
+  </defs>
+  <rect width="700" height="480" class="bg"/>
+
+  <!-- Terminal window -->
+  <rect x="20" y="15" width="660" height="450" class="term-bg"/>
+
+  <!-- Title bar dots -->
+  <circle cx="42" cy="32" r="5" fill="#ff3b3b"/>
+  <circle cx="60" cy="32" r="5" fill="#ffd600"/>
+  <circle cx="78" cy="32" r="5" fill="#39ff14"/>
+  <text x="350" y="36" text-anchor="middle" class="text-dim">stackforge install</text>
+
+  <!-- Terminal content -->
+  <g class="line1">
+    <text x="40" y="65" class="prompt">$</text>
+    <text x="55" y="65" class="text-main">bash stackforge.sh</text>
+  </g>
+
+  <g class="line2">
+    <text x="40" y="90" class="text-cyan">━━━ Detecting Environment ━━━━━━━━━━━━━━━━━━━━━━━━</text>
+  </g>
+  <g class="line3">
+    <text x="40" y="108" class="text-green">  ✔ Environment: macOS 15.2 → Docker Desktop mode (k3d)</text>
+  </g>
+  <g class="line4">
+    <text x="40" y="124" class="text-green">  ✔ Docker Desktop: running ✓</text>
+  </g>
+
+  <g class="line5">
+    <text x="40" y="150" class="text-cyan">━━━ Phase 0: Tooling ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</text>
+  </g>
+  <g class="line6">
+    <text x="40" y="168" class="text-green">  ✔ kubectl: already installed</text>
+  </g>
+  <g class="line7">
+    <text x="40" y="184" class="text-green">  ✔ Helm: already installed</text>
+  </g>
+
+  <g class="line8">
+    <text x="40" y="210" class="text-cyan">━━━ Phase 1: Cluster Bootstrap ━━━━━━━━━━━━━━━━━━━</text>
+  </g>
+  <g class="line9">
+    <text x="40" y="228" class="text-green">  ✔ k3d cluster created (1 control-plane + 2 agents)</text>
+  </g>
+  <g class="line10">
+    <text x="40" y="244" class="text-green">  ✔ Kubeconfig: ~/.stackforge/kubeconfig</text>
+  </g>
+
+  <g class="line11">
+    <text x="40" y="270" class="text-cyan">━━━ Phase 2-4: Services ━━━━━━━━━━━━━━━━━━━━━━━━━━</text>
+  </g>
+  <g class="line12">
+    <text x="40" y="288" class="text-green">  ✔ Traefik Dashboard → http://127.0.0.1:32090/dashboard/</text>
+  </g>
+  <g class="line13">
+    <text x="40" y="304" class="text-green">  ✔ Portainer → https://127.0.0.1:30779  (admin / stackforge)</text>
+  </g>
+  <g class="line14">
+    <text x="40" y="320" class="text-green">  ✔ Grafana → http://127.0.0.1:32000  (admin / stackforge)</text>
+  </g>
+  <g class="line15">
+    <text x="40" y="336" class="text-green">  ✔ Prometheus → http://127.0.0.1:32001</text>
+  </g>
+
+  <g class="line16">
+    <text x="40" y="370" class="text-cyan">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</text>
+    <text x="40" y="388" class="text-green">  🚀  Stackforge complete!  [mode: docker-desktop]</text>
+    <text x="40" y="406" class="text-cyan">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</text>
+    <text x="40" y="430" class="text-orange">  → Open your portal: http://127.0.0.1:30080</text>
+    <rect x="40" y="445" width="7" height="12" class="cursor blink"/>
+  </g>
+</svg>

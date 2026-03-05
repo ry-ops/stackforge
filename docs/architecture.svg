@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" font-family="'Courier New', monospace">
+  <defs>
+    <style>
+      .bg { fill: #080c0f; }
+      .node-box { fill: #0d1318; stroke: #1e2d3a; stroke-width: 1.5; rx: 4; }
+      .node-box-master { fill: #0d1318; stroke: #00e5ff; stroke-width: 1.5; rx: 4; }
+      .label { fill: #c8d8e8; font-size: 11px; }
+      .label-sm { fill: #4a6070; font-size: 9px; }
+      .label-accent { fill: #00e5ff; font-size: 12px; font-weight: bold; }
+      .label-orange { fill: #ff6b00; font-size: 10px; }
+      .label-green { fill: #39ff14; font-size: 10px; }
+      .svc-box { fill: #111820; stroke: #243444; stroke-width: 1; rx: 3; }
+      .conn { stroke: #1e2d3a; stroke-width: 1; fill: none; stroke-dasharray: 4,3; }
+      .conn-active { stroke: #00e5ff; stroke-width: 1.2; fill: none; opacity: 0.5; }
+      .title { fill: #00e5ff; font-size: 16px; font-weight: bold; letter-spacing: 2px; }
+      .subtitle { fill: #4a6070; font-size: 10px; letter-spacing: 1px; }
+      @keyframes flowDown { 0%,100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+      .flow { animation: flowDown 3s ease-in-out infinite; }
+      .flow-d1 { animation-delay: 0s; }
+      .flow-d2 { animation-delay: 1s; }
+      .flow-d3 { animation-delay: 2s; }
+    </style>
+  </defs>
+  <rect width="900" height="520" class="bg"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" class="title">STACKFORGE CLUSTER ARCHITECTURE</text>
+  <text x="450" y="52" text-anchor="middle" class="subtitle">K3S / K3D // LIGHTWEIGHT KUBERNETES</text>
+
+  <!-- User/Browser -->
+  <rect x="370" y="70" width="160" height="40" class="svc-box"/>
+  <text x="450" y="95" text-anchor="middle" class="label">Browser / kubectl</text>
+
+  <!-- Arrows down to LB -->
+  <line x1="450" y1="110" x2="450" y2="140" class="conn-active flow flow-d1"/>
+
+  <!-- Load Balancer / NodePort -->
+  <rect x="320" y="140" width="260" height="36" class="node-box" style="stroke:#ff6b00"/>
+  <text x="450" y="163" text-anchor="middle" class="label-orange">NodePort Load Balancer</text>
+
+  <!-- Connections to nodes -->
+  <line x1="380" y1="176" x2="160" y2="220" class="conn-active flow flow-d2"/>
+  <line x1="450" y1="176" x2="450" y2="220" class="conn-active flow flow-d2"/>
+  <line x1="520" y1="176" x2="740" y2="220" class="conn-active flow flow-d2"/>
+
+  <!-- Master Node -->
+  <rect x="60" y="220" width="200" height="180" class="node-box-master"/>
+  <text x="160" y="243" text-anchor="middle" class="label-accent">MASTER-01</text>
+  <text x="160" y="258" text-anchor="middle" class="label-sm">control-plane</text>
+  <rect x="75" y="268" width="170" height="24" class="svc-box"/>
+  <text x="160" y="284" text-anchor="middle" class="label-sm">k3s API Server (6443)</text>
+  <rect x="75" y="298" width="170" height="24" class="svc-box"/>
+  <text x="160" y="314" text-anchor="middle" class="label-sm">etcd / SQLite</text>
+  <rect x="75" y="328" width="170" height="24" class="svc-box"/>
+  <text x="160" y="344" text-anchor="middle" class="label-sm">CoreDNS / metrics-server</text>
+  <rect x="75" y="358" width="170" height="24" class="svc-box"/>
+  <text x="160" y="374" text-anchor="middle" class="label-green">sf-api sidecar (8080)</text>
+
+  <!-- Worker 01 -->
+  <rect x="350" y="220" width="200" height="180" class="node-box"/>
+  <text x="450" y="243" text-anchor="middle" class="label-accent">WORKER-01</text>
+  <text x="450" y="258" text-anchor="middle" class="label-sm">workload node</text>
+  <rect x="365" y="268" width="170" height="24" class="svc-box"/>
+  <text x="450" y="284" text-anchor="middle" class="label-sm">Traefik (:32080/32443)</text>
+  <rect x="365" y="298" width="170" height="24" class="svc-box"/>
+  <text x="450" y="314" text-anchor="middle" class="label-sm">Portainer (:30779)</text>
+  <rect x="365" y="328" width="170" height="24" class="svc-box"/>
+  <text x="450" y="344" text-anchor="middle" class="label-sm">Grafana (:32000)</text>
+  <rect x="365" y="358" width="170" height="24" class="svc-box"/>
+  <text x="450" y="374" text-anchor="middle" class="label-sm">Dashboard (:30080)</text>
+
+  <!-- Worker 02 -->
+  <rect x="640" y="220" width="200" height="180" class="node-box"/>
+  <text x="740" y="243" text-anchor="middle" class="label-accent">WORKER-02</text>
+  <text x="740" y="258" text-anchor="middle" class="label-sm">workload node</text>
+  <rect x="655" y="268" width="170" height="24" class="svc-box"/>
+  <text x="740" y="284" text-anchor="middle" class="label-sm">Prometheus (:32001)</text>
+  <rect x="655" y="298" width="170" height="24" class="svc-box"/>
+  <text x="740" y="314" text-anchor="middle" class="label-sm">Uptime Kuma (:32100)</text>
+  <rect x="655" y="328" width="170" height="24" class="svc-box"/>
+  <text x="740" y="344" text-anchor="middle" class="label-sm">Traefik Dashboard (:32090)</text>
+  <rect x="655" y="358" width="170" height="24" class="svc-box"/>
+  <text x="740" y="374" text-anchor="middle" class="label-sm">kube-system pods</text>
+
+  <!-- Namespaces Legend -->
+  <rect x="60" y="430" width="780" height="70" class="svc-box"/>
+  <text x="80" y="452" class="label-sm">NAMESPACES:</text>
+  <rect x="170" y="440" width="10" height="10" fill="#00e5ff" rx="2"/>
+  <text x="185" y="450" class="label-sm">stackforge</text>
+  <rect x="270" y="440" width="10" height="10" fill="#ff6b00" rx="2"/>
+  <text x="285" y="450" class="label-sm">traefik</text>
+  <rect x="345" y="440" width="10" height="10" fill="#39ff14" rx="2"/>
+  <text x="360" y="450" class="label-sm">monitoring</text>
+  <rect x="450" y="440" width="10" height="10" fill="#ffd600" rx="2"/>
+  <text x="465" y="450" class="label-sm">portainer</text>
+  <rect x="545" y="440" width="10" height="10" fill="#4a6070" rx="2"/>
+  <text x="560" y="450" class="label-sm">kube-system</text>
+
+  <text x="80" y="478" class="label-sm">KUBECONFIG: ~/.stackforge/kubeconfig (isolated — ~/.kube/config NEVER touched)</text>
+  <text x="80" y="492" class="label-sm">ENGINE: k3s (bare-metal) or k3d (Docker Desktop / WSL2)</text>
+</svg>
