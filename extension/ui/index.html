@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080c0f">
 <title>STACKFORGE // CONTROL</title>
+<script src="https://unpkg.com/@docker/extension-api-client@0.3.4/dist/umd/docker-extension-api-client.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <style>
@@ -447,13 +448,19 @@
     background: transparent;
     border: 1px solid var(--border2);
     color: var(--text-dim);
-    font-size: 0.85rem;
+    font-size: 0.6rem;
     cursor: pointer;
-    padding: 0.2rem 0.4rem;
+    padding: 0.35rem 0.65rem;
     margin-left: auto;
     font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     transition: all 0.2s;
     line-height: 1;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
   }
   .restart-btn:hover {
     border-color: var(--accent2);
@@ -771,6 +778,21 @@
 </footer>
 
 <script>
+// ── Docker Desktop Extension API ─────────────────────────────
+const ddClient = typeof window.ddClient !== 'undefined'
+  ? window.ddClient
+  : (typeof window.createDockerDesktopClient === 'function'
+    ? window.createDockerDesktopClient()
+    : null);
+
+function openExternal(url) {
+  if (ddClient && ddClient.host && ddClient.host.openExternal) {
+    ddClient.host.openExternal(url);
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
+}
+
 // ── Config ────────────────────────────────────────────────────
 const CONFIG = {
   nodeIP: '127.0.0.1',
@@ -842,15 +864,17 @@ const svcDeploymentMap = {
 function renderServices() {
   grid.innerHTML = '';
   CONFIG.services.forEach((svc, i) => {
-    const card = document.createElement('a');
-    card.href = svc.url;
-    card.target = '_blank';
-    card.rel = 'noopener';
+    const card = document.createElement('div');
     card.className = 'service-card';
     card.style.animationDelay = `${i * 0.05 + 0.05}s`;
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.restart-btn')) return;
+      openExternal(svc.url);
+    });
 
     const restartBtn = svcDeploymentMap[svc.name]
-      ? `<button class="restart-btn" data-svc="${svc.name}" onclick="restartService(event, '${svc.name}')" title="Restart">&#x27f3;</button>`
+      ? `<button class="restart-btn" data-svc="${svc.name}" onclick="restartService(event, '${svc.name}')" title="Restart">&#x27f3; RESTART</button>`
       : '';
 
     card.innerHTML = `

@@ -44,10 +44,10 @@ type serviceCheck struct {
 
 var servicesToCheck = []serviceCheck{
 	{Name: "Portainer", Namespace: "portainer", Port: 9443, Path: "/", Proto: "https"},
-	{Name: "Grafana", Namespace: "monitoring", Port: 3000, Path: "/api/health", Proto: "http"},
+	{Name: "Grafana", Namespace: "monitoring", Port: 80, Path: "/api/health", Proto: "http"},
 	{Name: "Prometheus", Namespace: "monitoring", Port: 9090, Path: "/-/healthy", Proto: "http"},
 	{Name: "Uptime Kuma", Namespace: "monitoring", Port: 3001, Path: "/", Proto: "http"},
-	{Name: "Traefik", Namespace: "traefik", Port: 9000, Path: "/dashboard/", Proto: "http"},
+	{Name: "Traefik", Namespace: "traefik", Port: 80, Path: "/", Proto: "http"},
 }
 
 // --- Response types ---

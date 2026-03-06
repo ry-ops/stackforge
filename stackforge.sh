@@ -697,6 +697,7 @@ print_summary() {
   printf "    ${DIM}• Traefik       → http://%s:%s/dashboard/${RESET}\n" "${ACCESS_HOST}" "${PORT_TRAEFIK_DASH}"
   printf "    ${DIM}• Portainer     → https://%s:%s${RESET}\n" "${ACCESS_HOST}" "${PORT_PORTAINER_HTTPS}"
   printf "    ${DIM}• Dashboard     → http://%s:%s${RESET}\n" "${ACCESS_HOST}" "${PORT_DASHBOARD}"
+  printf "    ${DIM}• Uptime Kuma   → http://%s:%s${RESET}\n" "${ACCESS_HOST}" "${PORT_UPTIME_KUMA}"
   echo ""
   printf "  ${DIM}Kubeconfig : %s${RESET}\n" "${STACKFORGE_KUBECONFIG}"
   printf "  ${DIM}Log file   : %s${RESET}\n" "${LOG_FILE}"
