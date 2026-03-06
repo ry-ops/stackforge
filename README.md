@@ -127,6 +127,8 @@ On Docker Desktop / WSL2, these map to `127.0.0.1`. On bare-metal, they map to t
 
 ## After Install
 
+> **New to stackforge?** Read the full **[Getting Started Guide](docs/getting-started.md)** — covers Uptime Kuma setup, adding nodes, monitoring devices, and more.
+
 ### Access your cluster
 
 stackforge **never** touches `~/.kube/config`. All access uses:
@@ -147,6 +149,12 @@ bash stackforge.sh --kubeconfig
 ```bash
 bash stackforge.sh --worker
 ```
+
+See the [Getting Started Guide](docs/getting-started.md#adding-worker-nodes) for detailed instructions on joining worker nodes.
+
+### Set up Uptime Kuma monitors
+
+After install, open Uptime Kuma at `http://localhost:32100`, create an admin account, and add monitors for your services. See the [full setup guide](docs/getting-started.md#setting-up-uptime-kuma).
 
 ### Re-run to add services
 
@@ -237,6 +245,7 @@ stackforge/
 ├── dashboard/
 │   └── index.html                 # Real-time monitoring portal
 ├── docs/
+│   ├── getting-started.md         # New user guide (Uptime Kuma, nodes, devices)
 │   ├── architecture.svg           # Cluster topology diagram
 │   ├── dashboard-preview.svg      # Dashboard mockup
 │   └── install-flow.svg           # Animated install terminal
