@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080c0f">
+<title>STACKFORGE // CONTROL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #080c0f;
+    --bg2:      #0d1318;
+    --bg3:      #111820;
+    --border:   #1e2d3a;
+    --border2:  #243444;
+    --accent:   #00e5ff;
+    --accent2:  #ff6b00;
+    --accent3:  #39ff14;
+    --text:     #c8d8e8;
+    --text-dim: #4a6070;
+    --text-mid: #7a9aaa;
+    --red:      #ff3b3b;
+    --yellow:   #ffd600;
+    --mono:     'Share Tech Mono', monospace;
+    --sans:     'Barlow Condensed', sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+    --safe-l:   env(safe-area-inset-left, 0px);
+    --safe-r:   env(safe-area-inset-right, 0px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 14px; scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* scanline overlay — lighter on mobile for readability */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.06) 2px,
+      rgba(0,0,0,0.06) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* grid pattern */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Header ──────────────────────────────────── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 1rem;
+    padding-top: calc(0.6rem + var(--safe-top));
+    padding-left: calc(1rem + var(--safe-l));
+    padding-right: calc(1rem + var(--safe-r));
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 32px;
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-weight: 900;
+    font-size: 1.2rem;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .logo-slash { color: var(--text-dim); font-weight: 300; }
+
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.65rem;
+    color: var(--text-mid);
+    letter-spacing: 0.1em;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent3);
+    box-shadow: 0 0 8px var(--accent3);
+    animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .status-dot.warn { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+  .status-dot.err  { background: var(--red);    box-shadow: 0 0 8px var(--red); }
+
+  .time-display {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  /* ── Layout ──────────────────────────────────── */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+    padding-left: calc(1rem + var(--safe-l));
+    padding-right: calc(1rem + var(--safe-r));
+  }
+
+  /* ── Cluster Stats Bar ───────────────────────── */
+  .cluster-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    animation: fadeSlideDown 0.6s ease both;
+  }
+
+  .stat-cell {
+    background: var(--bg2);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .stat-label {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .stat-value {
+    font-size: 1.3rem;
+    font-family: var(--sans);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+  .stat-value.green { color: var(--accent3); }
+  .stat-value.orange { color: var(--accent2); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-sub {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+  }
+
+  /* ── Section Labels ──────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .section-label {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    min-width: 2rem;
+  }
+  .section-count {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Service Cards Grid ──────────────────────── */
+  .services-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .service-card {
+    background: var(--bg2);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.15s;
+    animation: fadeSlideUp 0.5s ease both;
+    min-height: 44px;
+    -webkit-touch-callout: none;
+  }
+  .service-card:nth-child(1)  { animation-delay: 0.05s }
+  .service-card:nth-child(2)  { animation-delay: 0.10s }
+  .service-card:nth-child(3)  { animation-delay: 0.15s }
+  .service-card:nth-child(4)  { animation-delay: 0.20s }
+  .service-card:nth-child(5)  { animation-delay: 0.25s }
+  .service-card:nth-child(6)  { animation-delay: 0.30s }
+
+  .service-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.2s ease;
+  }
+  .service-card:active { background: var(--bg3); }
+  .service-card:active::before { transform: scaleY(1); }
+
+  .service-card::after {
+    content: '→';
+    position: absolute;
+    top: 1.25rem; right: 1.25rem;
+    font-size: 1rem;
+    color: var(--text-dim);
+    transition: color 0.2s, transform 0.2s;
+  }
+
+  .card-icon {
+    width: 32px; height: 32px;
+    border: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    background: var(--bg3);
+    flex-shrink: 0;
+  }
+
+  .card-name {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  .card-desc {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .card-url {
+    font-size: 0.6rem;
+    color: var(--accent);
+    opacity: 0.6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .card-status {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-top: auto;
+  }
+
+  /* ── Node Grid ───────────────────────────────── */
+  .nodes-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .node-card {
+    background: var(--bg2);
+    padding: 1rem;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  .node-card:nth-child(1) { animation-delay: 0.05s }
+  .node-card:nth-child(2) { animation-delay: 0.10s }
+  .node-card:nth-child(3) { animation-delay: 0.15s }
+
+  .node-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .node-name {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .node-role {
+    font-size: 0.5rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border: 1px solid var(--border2);
+    padding: 0.15rem 0.5rem;
+  }
+  .node-role.master { color: var(--accent); border-color: var(--accent); }
+
+  .node-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+  .metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .metric-label {
+    font-size: 0.5rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .metric-bar {
+    height: 4px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+    border-radius: 1px;
+  }
+  .metric-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: var(--accent);
+    transition: width 1s ease;
+    border-radius: 1px;
+  }
+  .metric-fill.warn { background: var(--yellow); }
+  .metric-fill.crit { background: var(--red); }
+  .metric-value {
+    font-size: 0.65rem;
+    color: var(--text);
+  }
+
+  /* ── Terminal Log ────────────────────────────── */
+  .terminal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    font-size: 0.6rem;
+    color: var(--text-mid);
+    line-height: 1.8;
+    max-height: 140px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    animation: fadeSlideUp 0.6s ease 0.3s both;
+    -webkit-overflow-scrolling: touch;
+  }
+  .terminal::-webkit-scrollbar { width: 3px; }
+  .terminal::-webkit-scrollbar-track { background: var(--bg); }
+  .terminal::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  .log-line {
+    display: flex;
+    gap: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .log-time  { color: var(--text-dim); min-width: 60px; flex-shrink: 0; }
+  .log-level-ok   { color: var(--accent3); min-width: 40px; flex-shrink: 0; }
+  .log-level-warn { color: var(--yellow);  min-width: 40px; flex-shrink: 0; }
+  .log-level-err  { color: var(--red);     min-width: 40px; flex-shrink: 0; }
+  .log-msg {
+    color: var(--text-mid);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 7px; height: 10px;
+    background: var(--accent);
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+
+  /* ── Restart Button ────────────────────────────── */
+  .restart-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    margin-left: auto;
+    font-family: var(--mono);
+    transition: all 0.2s;
+    line-height: 1;
+  }
+  .restart-btn:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(255,107,0,0.1);
+  }
+
+  /* ── Add Service Button ────────────────────────── */
+  .add-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-mid);
+    padding: 0.5rem 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+  .add-btn:active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,0.08);
+  }
+
+  /* ── Ticker ──────────────────────────────────── */
+  .ticker-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 0.35rem 0;
+    margin-bottom: 1.5rem;
+    background: var(--bg2);
+  }
+  .ticker-track {
+    display: flex;
+    width: max-content;
+    animation: ticker 30s linear infinite;
+    gap: 3rem;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .ticker-item { display: flex; align-items: center; gap: 0.4rem; }
+  .ticker-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+  /* ── Footer ──────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    padding-bottom: calc(0.75rem + var(--safe-bot));
+    padding-left: calc(1rem + var(--safe-l));
+    padding-right: calc(1rem + var(--safe-r));
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    align-items: center;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-top: 2rem;
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  /* ── Animations ──────────────────────────────── */
+  @keyframes fadeSlideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.8); }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* ═══════════════════════════════════════════════
+     TABLET (600px+)
+     ═══════════════════════════════════════════════ */
+  @media (min-width: 600px) {
+    header {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      padding-left: calc(1.5rem + var(--safe-l));
+      padding-right: calc(1.5rem + var(--safe-r));
+      height: 52px;
+    }
+
+    .header-top { flex: none; }
+
+    main { padding: 1.5rem; }
+
+    .cluster-bar { grid-template-columns: repeat(3, 1fr); }
+    .stat-cell { padding: 0.85rem 1rem; }
+
+    .services-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .nodes-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .terminal { font-size: 0.65rem; padding: 1rem; }
+    .log-time { min-width: 70px; }
+    .log-level-ok, .log-level-warn, .log-level-err { min-width: 45px; }
+
+    footer {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     DESKTOP (900px+)
+     ═══════════════════════════════════════════════ */
+  @media (min-width: 900px) {
+    body { cursor: crosshair; }
+
+    header { padding: 0 2rem; }
+
+    main { padding: 2rem; }
+
+    .cluster-bar { grid-template-columns: repeat(6, 1fr); }
+    .stat-cell { padding: 1rem 1.2rem; }
+    .stat-value { font-size: 1.4rem; }
+
+    .services-grid {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    .service-card { padding: 1.5rem; }
+    .service-card:hover { background: var(--bg3); }
+    .service-card:hover::before { transform: scaleY(1); }
+    .service-card:hover::after {
+      color: var(--accent);
+      transform: translateX(3px);
+    }
+
+    .card-icon { width: 36px; height: 36px; font-size: 1rem; }
+    .card-name { font-size: 1.1rem; }
+
+    .node-card { padding: 1.25rem; }
+
+    .terminal {
+      font-size: 0.7rem;
+      max-height: 160px;
+      padding: 1rem 1.25rem;
+    }
+    .log-time { min-width: 80px; }
+    .log-level-ok, .log-level-warn, .log-level-err { min-width: 50px; }
+
+    .add-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0,229,255,0.05);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     WIDE DESKTOP (1200px+)
+     ═══════════════════════════════════════════════ */
+  @media (min-width: 1200px) {
+    .services-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     SMALL PHONES (< 380px)
+     ═══════════════════════════════════════════════ */
+  @media (max-width: 379px) {
+    html { font-size: 13px; }
+    .logo { font-size: 1rem; }
+    .stat-value { font-size: 1.1rem; }
+    .ticker-track { gap: 2rem; }
+    .node-metrics { grid-template-columns: 1fr; }
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .ticker-track { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo">
+      STACKFORGE <span class="logo-slash">//</span> CONTROL
+    </div>
+  </div>
+  <div class="header-meta">
+    <div class="status-pill">
+      <div class="status-dot" id="cluster-dot"></div>
+      <span id="cluster-status-label">CLUSTER NOMINAL</span>
+    </div>
+    <div class="time-display" id="clock"></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Cluster Stats Bar -->
+  <div class="cluster-bar" id="cluster-bar">
+    <div class="stat-cell">
+      <div class="stat-label">Nodes</div>
+      <div class="stat-value green" id="stat-nodes">3</div>
+      <div class="stat-sub">1 master · 2 workers</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Pods Running</div>
+      <div class="stat-value" id="stat-pods">—</div>
+      <div class="stat-sub">across all namespaces</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">CPU Usage</div>
+      <div class="stat-value orange" id="stat-cpu">—</div>
+      <div class="stat-sub">cluster avg</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Memory</div>
+      <div class="stat-value yellow" id="stat-mem">—</div>
+      <div class="stat-sub">cluster avg</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Services</div>
+      <div class="stat-value" id="stat-services">—</div>
+      <div class="stat-sub">deployed</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Uptime</div>
+      <div class="stat-value green" id="stat-uptime">—</div>
+      <div class="stat-sub">control plane</div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker-track" id="ticker">
+      <span class="ticker-item"><span class="ticker-dot"></span>k3s</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Portainer CE</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Grafana</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Traefik</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Uptime Kuma</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Prometheus</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>k3s</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Portainer CE</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Grafana</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Traefik</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Uptime Kuma</span>
+      <span class="ticker-item"><span class="ticker-dot"></span>Prometheus</span>
+    </div>
+  </div>
+
+  <!-- Services -->
+  <div class="section-header">
+    <div class="section-label">Installed Services</div>
+    <div class="section-line"></div>
+    <button class="add-btn" onclick="addService()">+ ADD</button>
+    <div class="section-count" id="svc-count"></div>
+  </div>
+
+  <div class="services-grid" id="services-grid"></div>
+
+  <!-- Nodes -->
+  <div class="section-header">
+    <div class="section-label">Cluster Nodes</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="nodes-grid" id="nodes-grid"></div>
+
+  <!-- Terminal Log -->
+  <div class="section-header">
+    <div class="section-label">Activity Log</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="terminal" id="terminal"></div>
+
+</main>
+
+<footer>
+  <span>STACKFORGE v0.4.0 // RY-OPS.DEV</span>
+  <span>K3S // LIGHTWEIGHT KUBERNETES</span>
+  <span id="footer-time"></span>
+</footer>
+
+<script>
+// ── Config ────────────────────────────────────────────────────
+const CONFIG = {
+  nodeIP: '127.0.0.1',
+  clusterName: 'stackforge-homelab',
+  services: JSON.parse(localStorage.getItem('sf-services') || 'null') || [
+    { name: 'Portainer',          url: null, desc: 'Container Management',  icon: '🐳', port: 30779, proto: 'https' },
+    { name: 'Grafana',            url: null, desc: 'Metrics & Dashboards',   icon: '📊', port: 32000, proto: 'http'  },
+    { name: 'Prometheus',         url: null, desc: 'Metrics Backend',        icon: '🔥', port: 32001, proto: 'http'  },
+    { name: 'Uptime Kuma',        url: null, desc: 'Status Monitoring',      icon: '🟢', port: 32100, proto: 'http'  },
+    { name: 'Traefik Dashboard',  url: null, desc: 'Ingress Controller',     icon: '🔀', port: 32090, proto: 'http', path: '/dashboard/' },
+  ]
+};
+
+CONFIG.services = CONFIG.services.map(s => ({
+  ...s,
+  url: s.url || `${s.proto}://${CONFIG.nodeIP}:${s.port}${s.path || ''}`
+}));
+
+// Earliest node creation time (set from API)
+let clusterCreated = null;
+
+// ── Clock ─────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const str = now.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  document.getElementById('clock').textContent = str;
+  document.getElementById('footer-time').textContent = str;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Toast Notifications ───────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;top:60px;right:1rem;z-index:9999;padding:0.75rem 1.25rem;
+    font-family:var(--mono);font-size:0.7rem;letter-spacing:0.05em;border:1px solid;
+    animation:fadeSlideDown 0.3s ease both;max-width:360px;`;
+  if (type === 'ok') {
+    t.style.background = 'rgba(57,255,20,0.15)'; t.style.borderColor = 'var(--accent3)'; t.style.color = 'var(--accent3)';
+  } else {
+    t.style.background = 'rgba(255,59,59,0.15)'; t.style.borderColor = 'var(--red)'; t.style.color = 'var(--red)';
+  }
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 4000);
+}
+
+// ── API Helpers ───────────────────────────────────────────────
+const API_BASE = 'http://localhost:30080';
+
+async function apiFetch(path) {
+  const res = await fetch(API_BASE + '/api' + path);
+  if (!res.ok) throw new Error(`API ${path}: ${res.status}`);
+  return res.json();
+}
+
+// ── Service Cards ─────────────────────────────────────────────
+const grid = document.getElementById('services-grid');
+
+// Service name → deployment mapping for restart
+const svcDeploymentMap = {
+  'Portainer':         { deployment: 'portainer', namespace: 'portainer' },
+  'Grafana':           { deployment: 'kube-prom-grafana', namespace: 'monitoring' },
+  'Prometheus':        { deployment: 'kube-prom-kube-prometheus-prometheus', namespace: 'monitoring' },
+  'Uptime Kuma':       { deployment: 'uptime-kuma', namespace: 'monitoring' },
+  'Traefik Dashboard': { deployment: 'traefik', namespace: 'traefik' },
+};
+
+function renderServices() {
+  grid.innerHTML = '';
+  CONFIG.services.forEach((svc, i) => {
+    const card = document.createElement('a');
+    card.href = svc.url;
+    card.target = '_blank';
+    card.rel = 'noopener';
+    card.className = 'service-card';
+    card.style.animationDelay = `${i * 0.05 + 0.05}s`;
+
+    const restartBtn = svcDeploymentMap[svc.name]
+      ? `<button class="restart-btn" data-svc="${svc.name}" onclick="restartService(event, '${svc.name}')" title="Restart">&#x27f3;</button>`
+      : '';
+
+    card.innerHTML = `
+      <div class="card-icon">${svc.icon || '⬡'}</div>
+      <div>
+        <div class="card-name">${svc.name}</div>
+        <div class="card-desc">${svc.desc}</div>
+      </div>
+      <div class="card-url">${svc.url}</div>
+      <div class="card-status">
+        <div class="status-dot" id="dot-${i}"></div>
+        <span id="status-${i}">CHECKING...</span>
+        ${restartBtn}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  document.getElementById('svc-count').textContent = `${CONFIG.services.length} TOTAL`;
+  document.getElementById('stat-services').textContent = CONFIG.services.length;
+}
+
+// ── Restart Service ───────────────────────────────────────────
+async function restartService(event, name) {
+  event.preventDefault();
+  event.stopPropagation();
+  const mapping = svcDeploymentMap[name];
+  if (!mapping) return;
+  if (!confirm(`Restart ${name}?`)) return;
+
+  try {
+    const res = await fetch(API_BASE + '/api/restart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(mapping),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`${name} restart initiated`, 'ok');
+      appendLog('ok', `restart: ${name} (${mapping.namespace}/${mapping.deployment})`);
+    } else {
+      showToast(`Failed: ${data.error}`, 'err');
+      appendLog('err', `restart failed: ${name} — ${data.error}`);
+    }
+  } catch (e) {
+    showToast(`Restart error: ${e.message}`, 'err');
+    appendLog('err', `restart error: ${name} — ${e.message}`);
+  }
+}
+
+// ── Service Health (from API) ─────────────────────────────────
+async function refreshServiceHealth() {
+  try {
+    const services = await apiFetch('/services');
+    const svcMap = {};
+    services.forEach(s => { svcMap[s.name] = s; });
+
+    CONFIG.services.forEach((svc, i) => {
+      const dot = document.getElementById(`dot-${i}`);
+      const lbl = document.getElementById(`status-${i}`);
+      if (!dot || !lbl) return;
+
+      const health = svcMap[svc.name];
+      if (health) {
+        if (health.status === 'up') {
+          dot.className = 'status-dot';
+          lbl.textContent = `UP (${health.latency}ms)`;
+        } else if (health.status === 'degraded') {
+          dot.className = 'status-dot warn';
+          lbl.textContent = 'DEGRADED';
+        } else {
+          dot.className = 'status-dot err';
+          lbl.textContent = 'DOWN';
+        }
+      } else {
+        // Custom service — no backend health data
+        dot.className = 'status-dot warn';
+        lbl.textContent = 'EXTERNAL';
+      }
+    });
+
+    // Update cluster status dot
+    const allUp = services.every(s => s.status === 'up');
+    const anyDown = services.some(s => s.status === 'down');
+    const clDot = document.getElementById('cluster-dot');
+    const clLbl = document.getElementById('cluster-status-label');
+    if (anyDown) {
+      clDot.className = 'status-dot err';
+      clLbl.textContent = 'SERVICE DEGRADED';
+    } else if (allUp) {
+      clDot.className = 'status-dot';
+      clLbl.textContent = 'CLUSTER NOMINAL';
+    } else {
+      clDot.className = 'status-dot warn';
+      clLbl.textContent = 'PARTIALLY READY';
+    }
+  } catch (e) {
+    // API unavailable — mark all as checking
+    CONFIG.services.forEach((_, i) => {
+      const dot = document.getElementById(`dot-${i}`);
+      const lbl = document.getElementById(`status-${i}`);
+      if (dot) dot.className = 'status-dot warn';
+      if (lbl) lbl.textContent = 'API OFFLINE';
+    });
+  }
+}
+
+// ── Node Cards (from API) ─────────────────────────────────────
+function fillBar(pct) {
+  const cls = pct > 85 ? 'crit' : pct > 60 ? 'warn' : '';
+  return `<div class="metric-bar"><div class="metric-fill ${cls}" style="width:${Math.min(pct, 100)}%"></div></div>`;
+}
+
+async function refreshNodes() {
+  try {
+    const nodes = await apiFetch('/nodes');
+    const g = document.getElementById('nodes-grid');
+    g.innerHTML = '';
+
+    // Track earliest creation for uptime
+    nodes.forEach(n => {
+      const created = new Date(n.created);
+      if (!clusterCreated || created < clusterCreated) clusterCreated = created;
+    });
+
+    document.getElementById('stat-nodes').textContent = nodes.length;
+    const masters = nodes.filter(n => n.role === 'master').length;
+    const workers = nodes.length - masters;
+    document.getElementById('stat-nodes').nextElementSibling.textContent = `${masters} master · ${workers} worker${workers !== 1 ? 's' : ''}`;
+
+    nodes.forEach((n, i) => {
+      const card = document.createElement('div');
+      card.className = 'node-card';
+      card.style.animationDelay = `${i * 0.05 + 0.05}s`;
+      const statusCls = n.status === 'Ready' ? '' : ' err';
+      card.innerHTML = `
+        <div class="node-header">
+          <div class="node-name">${n.name}</div>
+          <div class="node-role ${n.role}">${n.role.toUpperCase()}${statusCls ? ' <span style="color:var(--red)">[' + n.status + ']</span>' : ''}</div>
+        </div>
+        <div class="node-metrics">
+          <div class="metric">
+            <div class="metric-label">CPU</div>
+            ${fillBar(n.cpu)}
+            <div class="metric-value">${n.cpu.toFixed(1)}%</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Memory</div>
+            ${fillBar(n.mem)}
+            <div class="metric-value">${n.mem.toFixed(1)}%</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Disk</div>
+            ${fillBar(n.disk)}
+            <div class="metric-value">${n.disk.toFixed(1)}%</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">k3s</div>
+            <div class="metric-value" style="color:var(--text-dim);font-size:0.55rem">${n.version}</div>
+          </div>
+        </div>
+      `;
+      g.appendChild(card);
+    });
+  } catch (e) {
+    // Keep existing node cards on error
+  }
+}
+
+// ── Cluster Metrics (from API) ────────────────────────────────
+async function refreshMetrics() {
+  try {
+    const m = await apiFetch('/metrics');
+    document.getElementById('stat-cpu').textContent = m.cpuPercent.toFixed(1) + '%';
+    document.getElementById('stat-mem').textContent = m.memPercent.toFixed(1) + '%';
+    document.getElementById('stat-pods').textContent = m.totalPods;
+  } catch (e) {
+    // Keep current values on error
+  }
+}
+
+// ── Uptime (from node creation) ───────────────────────────────
+function refreshUptime() {
+  if (!clusterCreated) return;
+  const elapsed = Math.floor((Date.now() - clusterCreated.getTime()) / 1000);
+  if (elapsed < 0) return;
+  const d = Math.floor(elapsed / 86400);
+  const h = String(Math.floor((elapsed % 86400) / 3600)).padStart(2, '0');
+  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+  const display = d > 0 ? `${d}d ${h}:${m}:${s}` : `${h}:${m}:${s}`;
+  document.getElementById('stat-uptime').textContent = display;
+}
+
+// ── Activity Log (from API events) ────────────────────────────
+let lastEventTimestamp = '';
+
+function renderTerminal(events) {
+  const t = document.getElementById('terminal');
+  if (!events || events.length === 0) {
+    t.innerHTML = `<div class="log-line"><span class="log-time">[ready]</span><span class="log-level-ok">[OK  ]</span><span class="log-msg">waiting for cluster events...<span class="cursor-blink"></span></span></div>`;
+    return;
+  }
+  t.innerHTML = events.map(ev => {
+    const ts = ev.timestamp ? new Date(ev.timestamp).toTimeString().slice(0, 8) : '??:??:??';
+    const level = ev.type === 'Warning' ? 'warn' : ev.type === 'Error' ? 'err' : 'ok';
+    const msg = `[${ev.namespace}] ${ev.reason}: ${ev.message}`;
+    return `<div class="log-line">
+      <span class="log-time">[${ts}]</span>
+      <span class="log-level-${level}">[${level.toUpperCase().padEnd(4)}]</span>
+      <span class="log-msg">${msg}</span>
+    </div>`;
+  }).join('') + `<div class="log-line"><span class="log-time">[live]</span><span class="log-level-ok"> </span><span class="log-msg"><span class="cursor-blink"></span></span></div>`;
+  t.scrollTop = t.scrollHeight;
+}
+
+async function refreshEvents() {
+  try {
+    const events = await apiFetch('/events');
+    renderTerminal(events);
+    if (events.length > 0) lastEventTimestamp = events[0].timestamp;
+  } catch (e) {
+    // Keep current log on error
+  }
+}
+
+// ── Add Service ───────────────────────────────────────────────
+function addService() {
+  const name = prompt('Service name:');
+  if (!name) return;
+  const url  = prompt('Service URL (e.g. http://192.168.1.100:8080):');
+  if (!url) return;
+  const desc = prompt('Description:') || 'Custom service';
+  CONFIG.services.push({ name, url, desc, icon: '⬡' });
+  localStorage.setItem('sf-services', JSON.stringify(CONFIG.services));
+  renderServices();
+  appendLog('ok', `service added: ${name}`);
+}
+
+function appendLog(level, msg) {
+  const t = document.getElementById('terminal');
+  const now = new Date().toTimeString().slice(0,8);
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-time">[${now}]</span><span class="log-level-${level}">[${level.toUpperCase().padEnd(4)}]</span><span class="log-msg">${msg}</span>`;
+  t.insertBefore(div, t.lastElementChild);
+  t.scrollTop = t.scrollHeight;
+}
+
+// ── Init ──────────────────────────────────────────────────────
+renderServices();
+renderTerminal([]);
+
+// Initial data fetch
+(async () => {
+  await Promise.all([refreshNodes(), refreshMetrics(), refreshServiceHealth(), refreshEvents()]);
+})();
+
+// Polling intervals
+setInterval(() => { refreshNodes(); refreshMetrics(); }, 10000);  // nodes + metrics every 10s
+setInterval(refreshServiceHealth, 15000);                          // service health every 15s
+setInterval(refreshEvents, 10000);                                 // events every 10s
+setInterval(refreshUptime, 1000);                                  // uptime every 1s
+</script>
+</body>
+</html>

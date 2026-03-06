@@ -1,0 +1,15 @@
+{
+  "schema": "0.0.1",
+  "vendor": "ry-ops",
+  "version": "0.4.0",
+  "title": "Stackforge",
+  "description": "Real-time Kubernetes homelab monitoring dashboard",
+  "icon": "stackforge.svg",
+  "ui": {
+    "dashboard-tab": {
+      "title": "Stackforge",
+      "root": "/ui",
+      "src": "index.html"
+    }
+  }
+}
