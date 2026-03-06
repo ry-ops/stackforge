@@ -15,7 +15,7 @@
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20WSL2-blue.svg)]()
 [![k3s](https://img.shields.io/badge/k8s-k3s%20%7C%20k3d-orange.svg)](https://k3s.io)
 [![GHCR](https://img.shields.io/badge/container-ghcr.io-purple.svg)](https://github.com/ry-ops/stackforge/pkgs/container/stackforge)
-[![Version](https://img.shields.io/badge/version-0.4.0-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/version-0.5.0-brightgreen.svg)]()
 
 ---
 

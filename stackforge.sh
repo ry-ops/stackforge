@@ -7,7 +7,7 @@
 #  ███████║   ██║   ██║  ██║╚██████╗██║  ██╗██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
 #  ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 #
-#  stackforge v0.4.0 — guided homelab infrastructure bootstrapper
+#  stackforge v0.5.0 — guided homelab infrastructure bootstrapper
 #
 #  Runs on:
 #    ┌─────────────────────┬────────────────────────────────────────────┐
@@ -37,7 +37,7 @@
 set -eu
 
 # ─── Globals ────────────────────────────────────────────────
-STACKFORGE_VERSION="0.4.0"
+STACKFORGE_VERSION="0.5.0"
 STACKFORGE_DIR="${HOME}/.stackforge"
 STACKFORGE_KUBECONFIG="${STACKFORGE_DIR}/kubeconfig"  # NEVER ~/.kube/config
 STATE_FILE="${STACKFORGE_DIR}/state.env"
