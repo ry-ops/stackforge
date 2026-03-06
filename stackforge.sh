@@ -28,9 +28,10 @@
 #    curl -fsSL https://raw.githubusercontent.com/ry-ops/stackforge/main/stackforge.sh | sh
 #
 #  Subcommands:
-#    --worker     Join this machine to an existing stackforge bare-metal cluster
-#    --destroy    Tear down the stackforge cluster (safe, isolated)
-#    --kubeconfig Print path to the stackforge kubeconfig file
+#    --worker           Join this machine to an existing stackforge bare-metal cluster
+#    --destroy          Tear down the stackforge cluster (safe, isolated)
+#    --kubeconfig       Print path to the stackforge kubeconfig file
+#    --reset-passwords  Generate new passwords for all services
 # ============================================================
 
 set -eu
@@ -143,6 +144,147 @@ prompt_input() {
   fi
   read -r reply
   printf '%s' "${reply:-$default}"
+}
+
+# ─── Password Generation ─────────────────────────────────────
+generate_password() {
+  head -c 48 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16
+}
+
+# ─── Credentials Secret ─────────────────────────────────────
+create_credentials_secret() {
+  section "Setting Up Credentials"
+
+  local grafana_user="admin"
+  local grafana_pass
+  local portainer_pass
+
+  # Reuse existing passwords if state.env already has them
+  if [ -f "${STATE_FILE}" ] && grep -q "GRAFANA_ADMIN_PASSWORD=" "${STATE_FILE}" 2>/dev/null; then
+    grafana_pass=$(grep "^GRAFANA_ADMIN_PASSWORD=" "${STATE_FILE}" | cut -d'=' -f2)
+    portainer_pass=$(grep "^PORTAINER_ADMIN_PASSWORD=" "${STATE_FILE}" | cut -d'=' -f2)
+    info "Reusing existing credentials from ${STATE_FILE}"
+  else
+    grafana_pass=$(generate_password)
+    portainer_pass=$(generate_password)
+    info "Generated new random credentials"
+  fi
+
+  # Create secret in stackforge namespace
+  kc create namespace stackforge --dry-run=client -o yaml | kc apply -f - >/dev/null 2>&1
+  kc create secret generic stackforge-credentials \
+    --from-literal="grafana-admin-user=${grafana_user}" \
+    --from-literal="grafana-admin-password=${grafana_pass}" \
+    --from-literal="portainer-admin-password=${portainer_pass}" \
+    --namespace stackforge \
+    --dry-run=client -o yaml | kc apply -f -
+
+  # Create same secret in monitoring namespace (Grafana's existingSecret requires same-namespace)
+  kc create namespace monitoring --dry-run=client -o yaml | kc apply -f - >/dev/null 2>&1
+  kc create secret generic stackforge-credentials \
+    --from-literal="grafana-admin-user=${grafana_user}" \
+    --from-literal="grafana-admin-password=${grafana_pass}" \
+    --from-literal="portainer-admin-password=${portainer_pass}" \
+    --namespace monitoring \
+    --dry-run=client -o yaml | kc apply -f -
+
+  # Persist to state.env for recovery
+  {
+    grep -v "^GRAFANA_ADMIN_USER=\|^GRAFANA_ADMIN_PASSWORD=\|^PORTAINER_ADMIN_PASSWORD=" "${STATE_FILE}" 2>/dev/null || true
+    echo "GRAFANA_ADMIN_USER=${grafana_user}"
+    echo "GRAFANA_ADMIN_PASSWORD=${grafana_pass}"
+    echo "PORTAINER_ADMIN_PASSWORD=${portainer_pass}"
+  } > "${STATE_FILE}.tmp"
+  mv "${STATE_FILE}.tmp" "${STATE_FILE}"
+  chmod 600 "${STATE_FILE}"
+
+  # Export for use in install functions
+  GRAFANA_USER="${grafana_user}"
+  GRAFANA_PASS="${grafana_pass}"
+  PORTAINER_PASS="${portainer_pass}"
+
+  ok "Credentials secret created in stackforge and monitoring namespaces"
+  ok "Credentials saved to ${STATE_FILE}"
+}
+
+# ─── Reset Passwords ─────────────────────────────────────────
+reset_passwords() {
+  section "Resetting All Passwords"
+
+  local grafana_pass
+  local portainer_pass
+  grafana_pass=$(generate_password)
+  portainer_pass=$(generate_password)
+
+  info "Generated new passwords"
+
+  # Patch secrets in both namespaces
+  for ns in stackforge monitoring; do
+    kc create secret generic stackforge-credentials \
+      --from-literal="grafana-admin-user=admin" \
+      --from-literal="grafana-admin-password=${grafana_pass}" \
+      --from-literal="portainer-admin-password=${portainer_pass}" \
+      --namespace "${ns}" \
+      --dry-run=client -o yaml | kc apply -f -
+  done
+  ok "Kubernetes secrets updated"
+
+  # Sync Grafana password via API
+  local grafana_url="http://${ACCESS_HOST}:${PORT_GRAFANA}"
+  local old_grafana_pass
+  old_grafana_pass=$(grep "^GRAFANA_ADMIN_PASSWORD=" "${STATE_FILE}" 2>/dev/null | cut -d'=' -f2 || echo "stackforge")
+
+  info "Syncing Grafana password..."
+  if curl -fsSk -X PUT "${grafana_url}/api/admin/users/1/password" \
+    -H "Content-Type: application/json" \
+    -u "admin:${old_grafana_pass}" \
+    -d "{\"password\":\"${grafana_pass}\"}" >/dev/null 2>&1; then
+    ok "Grafana password updated"
+  else
+    warn "Could not sync Grafana password via API (service may be down)"
+  fi
+
+  # Sync Portainer password via API
+  local portainer_url="https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}"
+  local old_portainer_pass
+  old_portainer_pass=$(grep "^PORTAINER_ADMIN_PASSWORD=" "${STATE_FILE}" 2>/dev/null | cut -d'=' -f2 || echo "stackforge")
+
+  info "Syncing Portainer password..."
+  local jwt
+  jwt=$(curl -fsSk -X POST "${portainer_url}/api/auth" \
+    -H "Content-Type: application/json" \
+    -d "{\"Username\":\"admin\",\"Password\":\"${old_portainer_pass}\"}" 2>/dev/null | tr -d '"{}' | sed 's/jwt://')
+
+  if [ -n "$jwt" ] && [ "$jwt" != "" ]; then
+    if curl -fsSk -X PUT "${portainer_url}/api/users/1/passwd" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer ${jwt}" \
+      -d "{\"password\":\"${portainer_pass}\"}" >/dev/null 2>&1; then
+      ok "Portainer password updated"
+    else
+      warn "Could not sync Portainer password via API"
+    fi
+  else
+    warn "Could not authenticate with Portainer (service may be down)"
+  fi
+
+  # Update state.env
+  {
+    grep -v "^GRAFANA_ADMIN_USER=\|^GRAFANA_ADMIN_PASSWORD=\|^PORTAINER_ADMIN_PASSWORD=" "${STATE_FILE}" 2>/dev/null || true
+    echo "GRAFANA_ADMIN_USER=admin"
+    echo "GRAFANA_ADMIN_PASSWORD=${grafana_pass}"
+    echo "PORTAINER_ADMIN_PASSWORD=${portainer_pass}"
+  } > "${STATE_FILE}.tmp"
+  mv "${STATE_FILE}.tmp" "${STATE_FILE}"
+  chmod 600 "${STATE_FILE}"
+
+  echo ""
+  printf "  ${BOLD}New Credentials:${RESET}\n"
+  printf "    ${BGREEN}Grafana${RESET}    admin / ${BCYAN}%s${RESET}\n" "${grafana_pass}"
+  printf "    ${BGREEN}Portainer${RESET}  admin / ${BCYAN}%s${RESET}\n" "${portainer_pass}"
+  echo ""
+  printf "  ${DIM}Saved to: %s${RESET}\n" "${STATE_FILE}"
+  ok "Password reset complete"
 }
 
 # ─── Service list helpers (replaces bash arrays) ─────────────
@@ -565,11 +707,25 @@ install_portainer() {
     --set service.type=NodePort \
     --set "service.nodePort=${PORT_PORTAINER_HTTP}" \
     --set "service.httpsNodePort=${PORT_PORTAINER_HTTPS}" \
-    --set "env[0].name=ADMIN_PASSWORD" \
-    --set "env[0].value=stackforge" \
     --wait --timeout 5m
-  ok "Portainer → https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}  (admin / stackforge)"
-  warn "Change the Portainer admin password after first login!"
+
+  # Set admin password via Portainer's first-boot API endpoint
+  info "Configuring Portainer admin password..."
+  local attempts=0
+  while [ $attempts -lt 30 ]; do
+    if curl -fsSk "https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}/api/users/admin/init" \
+      -H "Content-Type: application/json" \
+      -d "{\"Username\":\"admin\",\"Password\":\"${PORTAINER_PASS}\"}" >/dev/null 2>&1; then
+      ok "Portainer admin password configured"
+      break
+    fi
+    attempts=$((attempts + 1))
+    sleep 2
+  done
+  if [ $attempts -ge 30 ]; then
+    warn "Could not set Portainer password via API (may need manual setup)"
+  fi
+  ok "Portainer → https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}  (admin / <generated>)"
   svc_add "Portainer|https://${ACCESS_HOST}:${PORT_PORTAINER_HTTPS}|Container Management"
 }
 
@@ -583,14 +739,15 @@ install_monitoring() {
     --namespace monitoring \
     --set "grafana.service.type=NodePort" \
     --set "grafana.service.nodePort=${PORT_GRAFANA}" \
-    --set "grafana.adminPassword=stackforge" \
+    --set "grafana.admin.existingSecret=stackforge-credentials" \
+    --set "grafana.admin.userKey=grafana-admin-user" \
+    --set "grafana.admin.passwordKey=grafana-admin-password" \
     --set "prometheus.service.type=NodePort" \
     --set "prometheus.service.nodePort=${PORT_PROMETHEUS}" \
     --set "alertmanager.enabled=false" \
     --wait --timeout 10m
-  ok "Grafana    → http://${ACCESS_HOST}:${PORT_GRAFANA}  (admin / stackforge)"
+  ok "Grafana    → http://${ACCESS_HOST}:${PORT_GRAFANA}  (admin / <generated>)"
   ok "Prometheus → http://${ACCESS_HOST}:${PORT_PROMETHEUS}"
-  warn "Change the Grafana admin password after first login!"
   svc_add "Grafana|http://${ACCESS_HOST}:${PORT_GRAFANA}|Metrics & Dashboards"
   svc_add "Prometheus|http://${ACCESS_HOST}:${PORT_PROMETHEUS}|Metrics Backend"
 }
@@ -699,6 +856,15 @@ print_summary() {
   printf "    ${DIM}• Dashboard     → http://%s:%s${RESET}\n" "${ACCESS_HOST}" "${PORT_DASHBOARD}"
   printf "    ${DIM}• Uptime Kuma   → http://%s:%s${RESET}\n" "${ACCESS_HOST}" "${PORT_UPTIME_KUMA}"
   echo ""
+  if [ -n "${GRAFANA_PASS:-}" ] && [ -n "${PORTAINER_PASS:-}" ]; then
+    printf "  ${BOLD}Credentials (randomly generated):${RESET}\n"
+    printf "    ${BGREEN}Grafana${RESET}    admin / ${BCYAN}%s${RESET}\n" "${GRAFANA_PASS}"
+    printf "    ${BGREEN}Portainer${RESET}  admin / ${BCYAN}%s${RESET}\n" "${PORTAINER_PASS}"
+    echo ""
+    printf "  ${DIM}View later:  cat %s${RESET}\n" "${STATE_FILE}"
+    printf "  ${DIM}Reset all:   bash stackforge.sh --reset-passwords${RESET}\n"
+    echo ""
+  fi
   printf "  ${DIM}Kubeconfig : %s${RESET}\n" "${STACKFORGE_KUBECONFIG}"
   printf "  ${DIM}Log file   : %s${RESET}\n" "${LOG_FILE}"
   [ -f "${STATE_FILE}" ] && printf "  ${DIM}State file : %s${RESET}\n" "${STATE_FILE}"
@@ -724,6 +890,11 @@ main() {
       ;;
     --kubeconfig)
       echo "${STACKFORGE_KUBECONFIG}"
+      exit 0
+      ;;
+    --reset-passwords)
+      check_prerequisites
+      reset_passwords
       exit 0
       ;;
   esac
@@ -754,6 +925,9 @@ main() {
       bootstrap_k3s_master
       ;;
   esac
+
+  # Credentials — create secret before installing services
+  create_credentials_secret
 
   # Phase 2 — ingress
   section "Phase 2: Ingress"

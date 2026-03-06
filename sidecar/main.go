@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -98,6 +103,42 @@ type RestartRequest struct {
 	Namespace  string `json:"namespace"`
 }
 
+// --- Credential types ---
+
+type CredentialService struct {
+	Name       string `json:"name"`
+	Username   string `json:"username"`
+	Configured bool   `json:"configured"`
+}
+
+type CredentialChangeRequest struct {
+	Service         string `json:"service"`
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
+}
+
+// Rate limiter for credential changes
+var credRateLimiter = struct {
+	mu       sync.Mutex
+	attempts []time.Time
+}{
+	attempts: make([]time.Time, 0),
+}
+
+const (
+	credSecretName = "stackforge-credentials"
+	credRateLimit  = 5
+	credRateWindow = time.Minute
+)
+
+// insecureHTTPClient skips TLS verification for in-cluster service calls (e.g. Portainer self-signed)
+var insecureHTTPClient = &http.Client{
+	Timeout: 10 * time.Second,
+	Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	},
+}
+
 func main() {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -121,6 +162,7 @@ func main() {
 	mux.HandleFunc("/api/services", handleServices)
 	mux.HandleFunc("/api/events", handleEvents)
 	mux.HandleFunc("/api/restart", handleRestart)
+	mux.HandleFunc("/api/credentials", handleCredentials)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok")
@@ -539,4 +581,217 @@ func handleRestart(w http.ResponseWriter, r *http.Request) {
 
 	// Suppress unused import warnings at compile time
 	_ = appsv1.SchemeGroupVersion
+}
+
+// handleCredentials routes GET and POST /api/credentials
+func handleCredentials(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		handleGetCredentials(w, r)
+	case http.MethodPost:
+		handlePostCredentials(w, r)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+// GET /api/credentials — returns service names and usernames, never passwords
+func handleGetCredentials(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	secret, err := clientset.CoreV1().Secrets("stackforge").Get(ctx, credSecretName, metav1.GetOptions{})
+	if err != nil {
+		writeError(w, http.StatusNotFound, "credentials secret not found")
+		return
+	}
+
+	services := []CredentialService{
+		{
+			Name:       "grafana",
+			Username:   string(secret.Data["grafana-admin-user"]),
+			Configured: len(secret.Data["grafana-admin-password"]) > 0,
+		},
+		{
+			Name:       "portainer",
+			Username:   "admin",
+			Configured: len(secret.Data["portainer-admin-password"]) > 0,
+		},
+	}
+
+	writeJSON(w, map[string]interface{}{"services": services})
+}
+
+// POST /api/credentials — change password for a service
+func handlePostCredentials(w http.ResponseWriter, r *http.Request) {
+	// Rate limiting
+	credRateLimiter.mu.Lock()
+	now := time.Now()
+	var recent []time.Time
+	for _, t := range credRateLimiter.attempts {
+		if now.Sub(t) < credRateWindow {
+			recent = append(recent, t)
+		}
+	}
+	credRateLimiter.attempts = recent
+	if len(recent) >= credRateLimit {
+		credRateLimiter.mu.Unlock()
+		writeError(w, http.StatusTooManyRequests, "rate limit exceeded, try again in a minute")
+		return
+	}
+	credRateLimiter.attempts = append(credRateLimiter.attempts, now)
+	credRateLimiter.mu.Unlock()
+
+	var req CredentialChangeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Service == "" || req.CurrentPassword == "" || req.NewPassword == "" {
+		writeError(w, http.StatusBadRequest, "service, currentPassword, and newPassword are required")
+		return
+	}
+
+	if len(req.NewPassword) < 8 {
+		writeError(w, http.StatusBadRequest, "new password must be at least 8 characters")
+		return
+	}
+
+	ctx := context.Background()
+
+	// Read current secret
+	secret, err := clientset.CoreV1().Secrets("stackforge").Get(ctx, credSecretName, metav1.GetOptions{})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to read credentials secret")
+		return
+	}
+
+	// Validate current password and determine which key to update
+	var secretKey string
+	switch req.Service {
+	case "grafana":
+		secretKey = "grafana-admin-password"
+	case "portainer":
+		secretKey = "portainer-admin-password"
+	default:
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("unknown service: %s", req.Service))
+		return
+	}
+
+	currentStored := string(secret.Data[secretKey])
+	if currentStored != req.CurrentPassword {
+		writeError(w, http.StatusUnauthorized, "current password is incorrect")
+		return
+	}
+
+	// Call the service's native API to change the password
+	switch req.Service {
+	case "grafana":
+		if err := changeGrafanaPassword(req.CurrentPassword, req.NewPassword); err != nil {
+			writeError(w, http.StatusBadGateway, fmt.Sprintf("failed to update Grafana: %v", err))
+			return
+		}
+	case "portainer":
+		if err := changePortainerPassword(req.CurrentPassword, req.NewPassword); err != nil {
+			writeError(w, http.StatusBadGateway, fmt.Sprintf("failed to update Portainer: %v", err))
+			return
+		}
+	}
+
+	// Update the secret in both namespaces
+	for _, ns := range []string{"stackforge", "monitoring"} {
+		nsSecret, err := clientset.CoreV1().Secrets(ns).Get(ctx, credSecretName, metav1.GetOptions{})
+		if err != nil {
+			log.Printf("Warning: failed to get secret in namespace %s: %v", ns, err)
+			continue
+		}
+		nsSecret.Data[secretKey] = []byte(req.NewPassword)
+		if _, err := clientset.CoreV1().Secrets(ns).Update(ctx, nsSecret, metav1.UpdateOptions{}); err != nil {
+			log.Printf("Warning: failed to update secret in namespace %s: %v", ns, err)
+		}
+	}
+
+	writeJSON(w, map[string]string{
+		"status":  "ok",
+		"message": fmt.Sprintf("%s password updated successfully", req.Service),
+	})
+}
+
+func changeGrafanaPassword(currentPass, newPass string) error {
+	grafanaURL := os.Getenv("GRAFANA_URL")
+	if grafanaURL == "" {
+		grafanaURL = "http://kube-prom-grafana.monitoring.svc.cluster.local:80"
+	}
+
+	body, _ := json.Marshal(map[string]string{"password": newPass})
+	req, err := http.NewRequest("PUT", grafanaURL+"/api/admin/users/1/password", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("admin:"+currentPass)))
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("grafana API unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("grafana returned %d: %s", resp.StatusCode, string(respBody))
+	}
+	return nil
+}
+
+func changePortainerPassword(currentPass, newPass string) error {
+	portainerURL := os.Getenv("PORTAINER_URL")
+	if portainerURL == "" {
+		portainerURL = "https://portainer.portainer.svc.cluster.local:9443"
+	}
+
+	// Authenticate to get JWT
+	authBody, _ := json.Marshal(map[string]string{"Username": "admin", "Password": currentPass})
+	authReq, err := http.NewRequest("POST", portainerURL+"/api/auth", bytes.NewReader(authBody))
+	if err != nil {
+		return err
+	}
+	authReq.Header.Set("Content-Type", "application/json")
+
+	authResp, err := insecureHTTPClient.Do(authReq)
+	if err != nil {
+		return fmt.Errorf("portainer auth unreachable: %w", err)
+	}
+	defer authResp.Body.Close()
+
+	if authResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("portainer auth failed with status %d", authResp.StatusCode)
+	}
+
+	var authResult struct {
+		JWT string `json:"jwt"`
+	}
+	if err := json.NewDecoder(authResp.Body).Decode(&authResult); err != nil {
+		return fmt.Errorf("failed to parse portainer auth response: %w", err)
+	}
+
+	// Change password
+	pwBody, _ := json.Marshal(map[string]string{"password": newPass})
+	pwReq, err := http.NewRequest("PUT", portainerURL+"/api/users/1/passwd", bytes.NewReader(pwBody))
+	if err != nil {
+		return err
+	}
+	pwReq.Header.Set("Content-Type", "application/json")
+	pwReq.Header.Set("Authorization", "Bearer "+authResult.JWT)
+
+	pwResp, err := insecureHTTPClient.Do(pwReq)
+	if err != nil {
+		return fmt.Errorf("portainer password change unreachable: %w", err)
+	}
+	defer pwResp.Body.Close()
+
+	if pwResp.StatusCode != http.StatusOK && pwResp.StatusCode != http.StatusNoContent {
+		respBody, _ := io.ReadAll(pwResp.Body)
+		return fmt.Errorf("portainer returned %d: %s", pwResp.StatusCode, string(respBody))
+	}
+	return nil
 }

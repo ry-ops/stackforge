@@ -297,9 +297,41 @@ sfk top pods -A --sort-by=cpu       # Pods sorted by CPU
 
 | Service | Username | Password | Notes |
 |---|---|---|---|
-| Grafana | `admin` | `stackforge` | Change after first login |
-| Portainer | `admin` | `stackforge` | Change after first login |
+| Grafana | `admin` | Random (shown at install) | Stored in `~/.stackforge/state.env` |
+| Portainer | `admin` | Random (shown at install) | Stored in `~/.stackforge/state.env` |
 | Uptime Kuma | — | — | Set up on first visit |
+
+---
+
+## Managing Credentials
+
+Stackforge generates random passwords for Grafana and Portainer during install. They're stored in a Kubernetes Secret (`stackforge-credentials`) and in `~/.stackforge/state.env`.
+
+### Viewing Passwords
+
+```bash
+cat ~/.stackforge/state.env
+```
+
+### Changing Passwords via Dashboard
+
+1. Open the Stackforge Dashboard at **http://localhost:30080**
+2. Scroll to the **CREDENTIALS** section
+3. Click **CHANGE** next to the service
+4. Enter your current password and new password
+5. Click **CONFIRM**
+
+The password is updated in both the Kubernetes Secret and the service itself.
+
+### Resetting All Passwords
+
+If you've lost access or want to regenerate all passwords:
+
+```bash
+bash stackforge.sh --reset-passwords
+```
+
+This generates new random passwords, updates the Kubernetes Secret, syncs with each service's API, and saves the new credentials to `~/.stackforge/state.env`.
 
 ---
 

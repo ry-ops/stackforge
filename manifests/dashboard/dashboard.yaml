@@ -16,6 +16,9 @@ rules:
   - apiGroups: [""]
     resources: [nodes]
     verbs: [get, list]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list, watch]
   - apiGroups: ["metrics.k8s.io"]
     resources: [nodes, pods]
     verbs: [get, list]
@@ -31,6 +34,58 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: sf-api
+subjects:
+  - kind: ServiceAccount
+    name: sf-api
+    namespace: stackforge
+---
+# Scoped Role for writing stackforge-credentials in stackforge namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sf-api-credentials
+  namespace: stackforge
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [stackforge-credentials]
+    verbs: [get, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sf-api-credentials
+  namespace: stackforge
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sf-api-credentials
+subjects:
+  - kind: ServiceAccount
+    name: sf-api
+    namespace: stackforge
+---
+# Scoped Role for writing stackforge-credentials in monitoring namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sf-api-credentials
+  namespace: monitoring
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [stackforge-credentials]
+    verbs: [get, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sf-api-credentials
+  namespace: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sf-api-credentials
 subjects:
   - kind: ServiceAccount
     name: sf-api
@@ -105,6 +160,10 @@ spec:
           env:
             - name: PORT
               value: "8080"
+            - name: GRAFANA_URL
+              value: "http://kube-prom-grafana.monitoring.svc.cluster.local:80"
+            - name: PORTAINER_URL
+              value: "https://portainer.portainer.svc.cluster.local:9443"
           resources:
             requests:
               memory: "16Mi"

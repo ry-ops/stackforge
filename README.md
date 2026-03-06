@@ -116,12 +116,12 @@ On Docker Desktop / WSL2, these map to `127.0.0.1`. On bare-metal, they map to t
 
 | Service | Username | Password | Notes |
 |---------|----------|----------|-------|
-| Grafana | `admin` | `stackforge` | Change after first login |
-| Portainer | `admin` | `stackforge` | Change after first login |
+| Grafana | `admin` | Random (shown at install) | Stored in `~/.stackforge/state.env` |
+| Portainer | `admin` | Random (shown at install) | Stored in `~/.stackforge/state.env` |
 | Traefik Dashboard | — | — | No auth (local access only) |
 | Uptime Kuma | — | — | Set up on first visit |
 
-> **Change default passwords immediately.** These are starter credentials for local homelab use.
+> Passwords are randomly generated at install time and displayed in the terminal. View them later with `cat ~/.stackforge/state.env`, change them via the dashboard UI, or reset all with `bash stackforge.sh --reset-passwords`. See the [credential management docs](docs/getting-started.md#managing-credentials) for details.
 
 ---
 
@@ -176,7 +176,7 @@ bash stackforge.sh --destroy
 
 ### Portainer shows "Admin timeout" or "Initial setup expired"
 
-Stackforge v0.4.0 auto-sets the admin password to `stackforge`. If you're on an older version:
+Stackforge auto-sets the admin password via the Portainer API during install. If the API call failed:
 
 ```bash
 # Delete and redeploy Portainer

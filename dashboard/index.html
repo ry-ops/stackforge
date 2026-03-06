@@ -660,6 +660,154 @@
     .node-metrics { grid-template-columns: 1fr; }
   }
 
+  /* ── Credentials Section ──────────────────────── */
+  .cred-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .cred-card {
+    background: var(--bg2);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+
+  .cred-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .cred-svc {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .cred-user {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  .cred-change-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    font-size: 0.55rem;
+    cursor: pointer;
+    padding: 0.3rem 0.6rem;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .cred-change-btn:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(255,107,0,0.1);
+  }
+
+  /* ── Password Modal ──────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    width: 90%;
+    max-width: 380px;
+    animation: fadeSlideDown 0.3s ease both;
+  }
+
+  .modal-title {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  .modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .modal-field label {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .modal-field input {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal-field input:focus { border-color: var(--accent); }
+
+  .modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .modal-btn {
+    flex: 1;
+    padding: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    transition: all 0.2s;
+  }
+  .modal-btn-cancel {
+    background: transparent;
+    color: var(--text-dim);
+  }
+  .modal-btn-cancel:hover { border-color: var(--text-mid); color: var(--text-mid); }
+  .modal-btn-confirm {
+    background: rgba(0,229,255,0.1);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .modal-btn-confirm:hover { background: rgba(0,229,255,0.2); }
+
+  @media (min-width: 600px) {
+    .cred-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
   /* Reduce motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -751,6 +899,33 @@
   </div>
 
   <div class="services-grid" id="services-grid"></div>
+
+  <!-- Credentials -->
+  <div class="section-header" id="cred-section" style="display:none">
+    <div class="section-label">Credentials</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="cred-grid" id="cred-grid" style="display:none"></div>
+
+  <!-- Password Change Modal -->
+  <div class="modal-overlay" id="pw-modal">
+    <div class="modal-box">
+      <div class="modal-title" id="pw-modal-title">CHANGE PASSWORD</div>
+      <div class="modal-field">
+        <label>Current Password</label>
+        <input type="password" id="pw-current" autocomplete="off">
+      </div>
+      <div class="modal-field">
+        <label>New Password</label>
+        <input type="password" id="pw-new" autocomplete="off">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="closePasswordModal()">CANCEL</button>
+        <button class="modal-btn modal-btn-confirm" onclick="submitPasswordChange()">CONFIRM</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Nodes -->
   <div class="section-header">
@@ -1103,18 +1278,93 @@ function appendLog(level, msg) {
   t.scrollTop = t.scrollHeight;
 }
 
+// ── Credentials ───────────────────────────────────────────────
+let credServiceTarget = '';
+
+async function refreshCredentials() {
+  try {
+    const data = await apiFetch('/credentials');
+    const section = document.getElementById('cred-section');
+    const grid = document.getElementById('cred-grid');
+    if (!data.services || data.services.length === 0) {
+      section.style.display = 'none';
+      grid.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+    grid.style.display = '';
+    grid.innerHTML = data.services.map(s => `
+      <div class="cred-card">
+        <div class="cred-info">
+          <div class="cred-svc">${s.name}</div>
+          <div class="cred-user">USER: ${s.username || 'admin'}</div>
+        </div>
+        ${s.configured ? `<button class="cred-change-btn" onclick="openPasswordModal('${s.name}')">CHANGE</button>` : ''}
+      </div>
+    `).join('');
+  } catch (e) {
+    // API unavailable — hide credentials section
+    document.getElementById('cred-section').style.display = 'none';
+    document.getElementById('cred-grid').style.display = 'none';
+  }
+}
+
+function openPasswordModal(service) {
+  credServiceTarget = service;
+  document.getElementById('pw-modal-title').textContent = `CHANGE ${service.toUpperCase()} PASSWORD`;
+  document.getElementById('pw-current').value = '';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-modal').classList.add('active');
+}
+
+function closePasswordModal() {
+  document.getElementById('pw-modal').classList.remove('active');
+  credServiceTarget = '';
+}
+
+async function submitPasswordChange() {
+  const currentPw = document.getElementById('pw-current').value;
+  const newPw = document.getElementById('pw-new').value;
+  if (!currentPw || !newPw) {
+    showToast('Both fields are required', 'err');
+    return;
+  }
+  if (newPw.length < 8) {
+    showToast('New password must be at least 8 characters', 'err');
+    return;
+  }
+  try {
+    const res = await fetch('/api/credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service: credServiceTarget, currentPassword: currentPw, newPassword: newPw }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`${credServiceTarget} password updated`, 'ok');
+      appendLog('ok', `password changed: ${credServiceTarget}`);
+      closePasswordModal();
+    } else {
+      showToast(data.error || 'Failed to change password', 'err');
+    }
+  } catch (e) {
+    showToast(`Error: ${e.message}`, 'err');
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────
 renderServices();
 renderTerminal([]);
 
 // Initial data fetch
 (async () => {
-  await Promise.all([refreshNodes(), refreshMetrics(), refreshServiceHealth(), refreshEvents()]);
+  await Promise.all([refreshNodes(), refreshMetrics(), refreshServiceHealth(), refreshEvents(), refreshCredentials()]);
 })();
 
 // Polling intervals
 setInterval(() => { refreshNodes(); refreshMetrics(); }, 10000);  // nodes + metrics every 10s
 setInterval(refreshServiceHealth, 15000);                          // service health every 15s
+setInterval(refreshCredentials, 30000);                            // credentials every 30s
 setInterval(refreshEvents, 10000);                                 // events every 10s
 setInterval(refreshUptime, 1000);                                  // uptime every 1s
 </script>
