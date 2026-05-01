@@ -1,0 +1,9 @@
+{
+  "name": "stackforge",
+  "version": "0.0.1",
+  "private": true,
+  "overrides": {
+    "golang.org/x/net": ">=0.33.0",
+    "golang.org/x/oauth2": ">=0.27.0"
+  }
+}
