@@ -4,6 +4,8 @@ go 1.22
 
 require (
 	golang.org/x/oauth2 v0.27.0 // security fix
+	golang.org/x/net v0.33.0 // security fix
+	golang.org/x/oauth2 v0.27.0 // security fix
 	golang.org/x/net v0.38.0 // security fix
 	k8s.io/api v0.29.4
 	k8s.io/apimachinery v0.29.4
