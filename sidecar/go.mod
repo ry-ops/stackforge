@@ -3,6 +3,12 @@ module github.com/ry-ops/stackforge/sidecar
 go 1.22
 
 require (
+	golang.org/x/oauth2 vv0.27.0 // security fix
+	golang.org/x/net vv0.45.0 // security fix
+	golang.org/x/net vv0.45.0 // security fix
+	golang.org/x/net vv0.38.0 // security fix
+	golang.org/x/net vv0.36.0 // security fix
+	golang.org/x/net vv0.33.0 // security fix
 	golang.org/x/oauth2 v0.27.0 // security fix
 	golang.org/x/net v0.33.0 // security fix
 	golang.org/x/oauth2 v0.27.0 // security fix
