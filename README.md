@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/banner.svg" alt="stackforge: Guided homelab bootstrapper: k3s on bare metal or k3d on Docker" width="100%"></p>
+
 # STACKFORGE
 
 > A guided homelab infrastructure bootstrapper. One script. Real monitoring. Choose your adventure.
@@ -280,3 +282,8 @@ PRs welcome. Open issues for distro support requests, new tool additions, or bug
 ## License
 
 MIT © [ry-ops](https://github.com/ry-ops)
+
+<!-- org-footer -->
+---
+
+<p align="center"><sub>Part of <a href="https://github.com/ry-ops">ry-ops</a> · building the pipes between infrastructure, automation, and observability · built by <a href="https://github.com/ry-ops">ry-ops</a></sub></p>
