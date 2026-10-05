@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" width="960" height="400" role="img" aria-labelledby="t d">
+  <title id="t">What you get</title>
+  <desc id="d">A production-style cluster in six phases: Foundation (Docker + k3s/k3d), Ingress (Traefik), Management (Portainer), Observability (Prometheus+Grafana and Uptime Kuma), and a Portal with a Go sidecar for real metrics. Every component is optional.</desc>
+  <defs><linearGradient id="title" x1="0" x2="1"><stop offset="0" stop-color="#f58220"/><stop offset="1" stop-color="#2dd4bf"/></linearGradient></defs>
+  <style>
+    text { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; fill:#e8eef5; }
+    .muted { fill:#8795a8; }
+    @keyframes r0 { 0%,2.22% { opacity:0; transform:translateX(-8px) } 8.89%,100% { opacity:1; transform:translateX(0) } } .r0 { animation:r0 9.0s infinite; }
+    @keyframes r1 { 0%,4.89% { opacity:0; transform:translateX(-8px) } 11.56%,100% { opacity:1; transform:translateX(0) } } .r1 { animation:r1 9.0s infinite; }
+    @keyframes r2 { 0%,7.56% { opacity:0; transform:translateX(-8px) } 14.22%,100% { opacity:1; transform:translateX(0) } } .r2 { animation:r2 9.0s infinite; }
+    @keyframes r3 { 0%,10.22% { opacity:0; transform:translateX(-8px) } 16.89%,100% { opacity:1; transform:translateX(0) } } .r3 { animation:r3 9.0s infinite; }
+    @keyframes r4 { 0%,12.89% { opacity:0; transform:translateX(-8px) } 19.56%,100% { opacity:1; transform:translateX(0) } } .r4 { animation:r4 9.0s infinite; }
+    @keyframes r5 { 0%,15.56% { opacity:0; transform:translateX(-8px) } 22.22%,100% { opacity:1; transform:translateX(0) } } .r5 { animation:r5 9.0s infinite; }
+    @media (prefers-reduced-motion: reduce) { * { animation:none !important; opacity:1 !important; transform:none !important; } }
+  </style>
+  <rect width="960" height="400" rx="20" fill="#0c1016"/>
+  <text x="40" y="54" font-size="26" font-weight="800" style="fill:url(#title)">What you get</text>
+  <text x="42" y="80" font-size="14" class="muted">A production-style cluster with real-time monitoring — every component optional, you choose.</text>
+  <g class="r0">
+  <rect x="40" y="118" width="880" height="40" rx="10" fill="#111823" stroke="#2496ED" stroke-opacity=".4"/>
+  <rect x="40" y="118" width="5" height="40" rx="2.5" fill="#2496ED"/>
+  <text x="62" y="143" font-size="10.5" font-weight="700" class="muted" style="text-transform:uppercase">Foundation</text>
+  <text x="230" y="143" font-size="13.5" font-weight="800">Docker + k3s / k3d</text>
+  <text x="900" y="143" text-anchor="end" font-size="11.5" class="muted">container runtime + lightweight Kubernetes</text></g><g class="r1">
+  <rect x="40" y="162" width="880" height="40" rx="10" fill="#111823" stroke="#f58220" stroke-opacity=".4"/>
+  <rect x="40" y="162" width="5" height="40" rx="2.5" fill="#f58220"/>
+  <text x="62" y="187" font-size="10.5" font-weight="700" class="muted" style="text-transform:uppercase">Ingress</text>
+  <text x="230" y="187" font-size="13.5" font-weight="800">Traefik</text>
+  <text x="900" y="187" text-anchor="end" font-size="11.5" class="muted">ingress controller · dashboard on :32090</text></g><g class="r2">
+  <rect x="40" y="206" width="880" height="40" rx="10" fill="#111823" stroke="#13BEF9" stroke-opacity=".4"/>
+  <rect x="40" y="206" width="5" height="40" rx="2.5" fill="#13BEF9"/>
+  <text x="62" y="231" font-size="10.5" font-weight="700" class="muted" style="text-transform:uppercase">Management</text>
+  <text x="230" y="231" font-size="13.5" font-weight="800">Portainer CE</text>
+  <text x="900" y="231" text-anchor="end" font-size="11.5" class="muted">GUI for your cluster and containers</text></g><g class="r3">
+  <rect x="40" y="250" width="880" height="40" rx="10" fill="#111823" stroke="#E6522C" stroke-opacity=".4"/>
+  <rect x="40" y="250" width="5" height="40" rx="2.5" fill="#E6522C"/>
+  <text x="62" y="275" font-size="10.5" font-weight="700" class="muted" style="text-transform:uppercase">Observability</text>
+  <text x="230" y="275" font-size="13.5" font-weight="800">Prometheus + Grafana</text>
+  <text x="900" y="275" text-anchor="end" font-size="11.5" class="muted">full metrics stack · pre-built k8s dashboards</text></g><g class="r4">
+  <rect x="40" y="294" width="880" height="40" rx="10" fill="#111823" stroke="#5CDD8B" stroke-opacity=".4"/>
+  <rect x="40" y="294" width="5" height="40" rx="2.5" fill="#5CDD8B"/>
+  <text x="62" y="319" font-size="10.5" font-weight="700" class="muted" style="text-transform:uppercase">Observability</text>
+  <text x="230" y="319" font-size="13.5" font-weight="800">Uptime Kuma</text>
+  <text x="900" y="319" text-anchor="end" font-size="11.5" class="muted">service health monitoring</text></g><g class="r5">
+  <rect x="40" y="338" width="880" height="40" rx="10" fill="#111823" stroke="#ffb648" stroke-opacity=".4"/>
+  <rect x="40" y="338" width="5" height="40" rx="2.5" fill="#ffb648"/>
+  <text x="62" y="363" font-size="10.5" font-weight="700" class="muted" style="text-transform:uppercase">Portal + Sidecar</text>
+  <text x="230" y="363" font-size="13.5" font-weight="800">Dashboard + sf-api</text>
+  <text x="900" y="363" text-anchor="end" font-size="11.5" class="muted">Go API → real CPU, memory, pods, events</text></g>
+  <text x="40" y="392" font-size="11" class="muted">Isolated by design: uses its own <tspan fill="#cdd6e6">~/.stackforge/kubeconfig</tspan> — never touches ~/.kube/config or your existing clusters.</text>
+</svg>
